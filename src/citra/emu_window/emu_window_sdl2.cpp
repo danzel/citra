@@ -16,6 +16,7 @@
 #include "core/settings.h"
 #include "input_common/keyboard.h"
 #include "input_common/main.h"
+#include "scripted_input/scripted_input.h"
 #include "network/network.h"
 
 void EmuWindow_SDL2::OnMouseMotion(s32 x, s32 y) {
@@ -59,6 +60,7 @@ void EmuWindow_SDL2::OnResize() {
 
 EmuWindow_SDL2::EmuWindow_SDL2() {
     InputCommon::Init();
+    ScriptedInput::Init();
     Network::Init();
 
     motion_emu = std::make_unique<Motion::MotionEmu>(*this);
