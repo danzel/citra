@@ -25,8 +25,15 @@ public:
     */
     std::unique_ptr<Input::ButtonDevice> Create(const Common::ParamPackage& params) override;
 
+    /**
+    * True if any button is being controlled
+    */
+    bool IsInUse();
+
+    void NotifyFrameFinished();
 private:
     std::shared_ptr<ScriptedButtonList> scripted_button_list;
+    bool is_in_use {false};
 };
 
 } // namespace InputCommon

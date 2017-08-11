@@ -19,6 +19,7 @@
 #include "core/memory.h"
 #include "core/settings.h"
 #include "core/tracer/recorder.h"
+#include "scripted_input/scripted_input.h"
 #include "video_core/debug_utils/debug_utils.h"
 #include "video_core/rasterizer_interface.h"
 #include "video_core/renderer_opengl/renderer_opengl.h"
@@ -150,6 +151,10 @@ void RendererOpenGL::SwapBuffers() {
 
     prev_state.Apply();
     RefreshRasterizerSetting();
+
+    if (ScriptedInput::IsInUse()) {
+        ScriptedInput::NotifyFrameFinished();
+    }
 
     if (Pica::g_debug_context && Pica::g_debug_context->recorder) {
         Pica::g_debug_context->recorder->FrameFinished();

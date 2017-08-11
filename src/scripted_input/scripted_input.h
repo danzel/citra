@@ -16,6 +16,8 @@ void Shutdown();
 
 class ScriptedButtons;
 
-ScriptedButtons* GetScriptedButtons();
+bool IsInUse();
+
+void NotifyFrameFinished();
 
 } // namespace InputCommon

@@ -33,6 +33,8 @@ int IndexOfButton(const std::string& button) {
     return -1; //home
 }
 
+int frame = 0;
+
 namespace ScriptedInput {
 
 class ScriptedButton final : public Input::ButtonDevice {
@@ -61,8 +63,24 @@ std::unique_ptr<Input::ButtonDevice> ScriptedButtons::Create(const Common::Param
     int index = IndexOfButton(button_str);
     if (index >= 0) {
         scripted_button_list.get()->buttons[index] = button.get();
+        is_in_use = true;
     }
 
     return std::move(button);
+}
+
+bool ScriptedButtons::IsInUse() {
+    return is_in_use;
+}
+
+void ScriptedButtons::NotifyFrameFinished() {
+    frame++;
+    if (frame >= 10) {
+        printf("TOGGLING\r\n");
+        frame = 0;
+
+        auto button = scripted_button_list.get()->buttons[0];
+        button->status.store(!button->GetStatus());
+    }
 }
 }

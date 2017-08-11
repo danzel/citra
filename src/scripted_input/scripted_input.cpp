@@ -21,8 +21,12 @@ void Shutdown() {
     Input::UnregisterFactory<Input::ButtonDevice>("scripted");
 }
 
-ScriptedButtons* GetScriptedButtons() {
-    return scripted_buttons.get();
+bool IsInUse() {
+    return scripted_buttons.get()->IsInUse();
+}
+
+void NotifyFrameFinished() {
+    scripted_buttons.get()->NotifyFrameFinished();
 }
 
 } // namespace ScriptedInput
