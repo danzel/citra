@@ -73,6 +73,7 @@ namespace Log {
     SUB(Audio, Sink)                                                                               \
     CLS(Input)                                                                                     \
     CLS(Network)                                                                                   \
+    CLS(ScriptedInput)                                                                             \
     CLS(Loader)                                                                                    \
     CLS(WebService)
 

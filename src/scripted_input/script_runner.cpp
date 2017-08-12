@@ -104,6 +104,10 @@ void ScriptRunner::NotifyFrameFinished() {
             scripted_buttons.get()->SetActiveButtons(script[script_index].buttons_active);
         }
     }
+
+    if (script_index >= script.size()) {
+        LOG_INFO(ScriptedInput, "Scripted Input finished at frame %i", frame_number);
+    }
 }
 
 void ScriptRunner::SaveScreenshot() {
