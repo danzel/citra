@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <vector>
 #include "core/frontend/input.h"
 #include "scripted_input/scripted_buttons.h"
 

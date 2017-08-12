@@ -3,6 +3,7 @@
 // Refer to the license.txt file included.
 
 #include <atomic>
+#include <vector>
 #include "scripted_input/scripted_buttons.h"
 
 const int button_count = 15;
@@ -70,7 +71,7 @@ void ScriptedButtons::SetActiveButtons(const std::vector<int>& buttons_active) {
             LOG_ERROR(
                 ScriptedInput,
                 "Button %s isn't mapped but is scripted, it should have engine:scripted,button:%s",
-                button_name_to_index[i], button_name_to_index[i]);
+                button_name_to_index[i].c_str(), button_name_to_index[i].c_str());
         }
     }
 }

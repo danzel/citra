@@ -3,6 +3,7 @@
 // Refer to the license.txt file included.
 
 #include <glad/glad.h>
+#include <string.h>
 #include "common/logging/log.h"
 #include "scripted_input/script_runner.h"
 #include "scripted_input/scripted_buttons.h"
@@ -123,20 +124,32 @@ void ScriptRunner::SaveScreenshot() {
     // https://web.archive.org/web/20080912171714/http://www.fortunecity.com/skyscraper/windows/364/bmpffrmt.html
     int image_bytes = (w * h * 3);
     int size = 14 + 40 + image_bytes;
-    unsigned char file_header[14] = {'B', 'M', size, size >> 8, size >> 16, size >> 24, 0,
-                                     0,   0,   0,    14 + 40,   0,          0,          0};
+    unsigned char file_header[14] = {'B',
+                                     'M',
+                                     static_cast<unsigned char>(size),
+                                     static_cast<unsigned char>(size >> 8),
+                                     static_cast<unsigned char>(size >> 16),
+                                     static_cast<unsigned char>(size >> 24),
+                                     0,
+                                     0,
+                                     0,
+                                     0,
+                                     14 + 40,
+                                     0,
+                                     0,
+                                     0};
     unsigned char info_header[40] = {40,
                                      0,
                                      0,
                                      0,
-                                     w,
-                                     w >> 8,
-                                     w >> 16,
-                                     w >> 24,
-                                     h,
-                                     h >> 8,
-                                     h >> 16,
-                                     h >> 24,
+                                     static_cast<unsigned char>(w),
+                                     static_cast<unsigned char>(w >> 8),
+                                     static_cast<unsigned char>(w >> 16),
+                                     static_cast<unsigned char>(w >> 24),
+                                     static_cast<unsigned char>(h),
+                                     static_cast<unsigned char>(h >> 8),
+                                     static_cast<unsigned char>(h >> 16),
+                                     static_cast<unsigned char>(h >> 24),
                                      1,
                                      0,
                                      24,
@@ -145,10 +158,10 @@ void ScriptRunner::SaveScreenshot() {
                                      0,
                                      0,
                                      0,
-                                     image_bytes,
-                                     image_bytes >> 8,
-                                     image_bytes >> 16,
-                                     image_bytes >> 24,
+                                     static_cast<unsigned char>(image_bytes),
+                                     static_cast<unsigned char>(image_bytes >> 8),
+                                     static_cast<unsigned char>(image_bytes >> 16),
+                                     static_cast<unsigned char>(image_bytes >> 24),
                                      0,
                                      0,
                                      0,
