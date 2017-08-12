@@ -127,6 +127,9 @@ struct Values {
     bool use_gdbstub;
     u16 gdbstub_port;
 
+    // ScriptedInput
+    std::string script_name;
+
     // WebService
     std::string telemetry_endpoint_url;
 } extern values;

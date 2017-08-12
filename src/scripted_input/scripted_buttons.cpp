@@ -2,7 +2,10 @@
 // Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
+#include <atomic>
 #include "scripted_input/scripted_buttons.h"
+
+const int button_count = 15;
 
 std::string button_name_to_index[] = {
     "a",
@@ -22,8 +25,10 @@ std::string button_name_to_index[] = {
     "home"
 };
 
+namespace ScriptedInput {
+
 int IndexOfButton(const std::string& button) {
-    for (int i = 0; i < 15; i++) {
+    for (int i = 0; i < button_count; i++) {
         if (button_name_to_index[i] == button) {
             return i;
         }
@@ -32,10 +37,6 @@ int IndexOfButton(const std::string& button) {
     //TODO: Log an error
     return -1; //home
 }
-
-int frame = 0;
-
-namespace ScriptedInput {
 
 class ScriptedButton final : public Input::ButtonDevice {
     bool GetStatus() const override {
@@ -50,7 +51,7 @@ private:
 class ScriptedButtonList {
     //TODO: Do i need to memset(0) buttons?
 public:
-    ScriptedButton* buttons[15];
+    ScriptedButton* buttons[button_count];
 };
 
 
@@ -73,14 +74,23 @@ bool ScriptedButtons::IsInUse() {
     return is_in_use;
 }
 
-void ScriptedButtons::NotifyFrameFinished() {
-    frame++;
-    if (frame >= 10) {
-        printf("TOGGLING\r\n");
-        frame = 0;
+void ScriptedButtons::SetActiveButtons(const std::vector<int>& buttons_active) {
 
-        auto button = scripted_button_list.get()->buttons[0];
-        button->status.store(!button->GetStatus());
+    for (int i = 0; i < button_count; i++) {
+        auto button = scripted_button_list.get()->buttons[i];
+        if (button) {
+            button->status.store(false);
+        }
+    }
+
+    for (int i = 0; i < buttons_active.size(); i++) {
+        auto button = scripted_button_list.get()->buttons[buttons_active[i]];
+        if (button) {
+            button->status.store(true);
+        }
+        else {
+            //TODO: Warning that button isn't mapped to scripting
+        }
     }
 }
 }

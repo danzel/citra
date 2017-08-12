@@ -7,6 +7,7 @@
 #include "core/hle/service/hid/hid.h"
 #include "core/hle/service/ir/ir.h"
 #include "core/settings.h"
+#include "scripted_input/scripted_input.h"
 #include "video_core/video_core.h"
 
 #include "core/frontend/emu_window.h"
@@ -34,6 +35,8 @@ void Apply() {
 
     Service::HID::ReloadInputDevices();
     Service::IR::ReloadInputDevices();
+
+    ScriptedInput::LoadScript(values.script_name);
 }
 
 } // namespace

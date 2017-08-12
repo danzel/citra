@@ -169,6 +169,10 @@ log_filter = *:Info
 use_gdbstub=false
 gdbstub_port=24689
 
+[ScriptedInput]
+# Script file to load for simulated input
+script_name=
+
 [WebService]
 # Endpoint URL for submitting telemetry data
 telemetry_endpoint_url =

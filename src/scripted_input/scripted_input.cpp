@@ -3,6 +3,7 @@
 // Refer to the license.txt file included.
 
 #include <memory>
+#include "scripted_input/script_runner.h"
 #include "scripted_input/scripted_buttons.h"
 #include "scripted_input/scripted_input.h"
 
@@ -11,10 +12,18 @@ namespace ScriptedInput {
 
 static std::shared_ptr<ScriptedButtons> scripted_buttons;
 //TODO: static std::shared_ptr<ScriptedAnalog> scripted_analog;
+static ScriptRunner script_runner;
 
 void Init() {
     scripted_buttons = std::make_shared<ScriptedInput::ScriptedButtons>();
     Input::RegisterFactory<Input::ButtonDevice>("scripted", scripted_buttons);
+    script_runner.SetButtons(scripted_buttons);
+}
+
+void LoadScript(std::string script_name) {
+    if (script_name.length() > 0) {
+        script_runner.LoadScript(script_name);
+    }
 }
 
 void Shutdown() {
@@ -22,11 +31,13 @@ void Shutdown() {
 }
 
 bool IsInUse() {
+    //TODO return script_runner.HasScript();
     return scripted_buttons.get()->IsInUse();
 }
 
 void NotifyFrameFinished() {
-    scripted_buttons.get()->NotifyFrameFinished();
+    script_runner.NotifyFrameFinished();
+    //TODO? scripted_buttons.get()->NotifyFrameFinished();
 }
 
 } // namespace ScriptedInput

@@ -4,11 +4,12 @@
 
 #pragma once
 
-#include <atomic>
 #include <memory>
 #include "core/frontend/input.h"
 
 namespace ScriptedInput {
+
+int IndexOfButton(const std::string& button);
 
 class ScriptedButtonList;
 
@@ -30,7 +31,7 @@ public:
     */
     bool IsInUse();
 
-    void NotifyFrameFinished();
+    void SetActiveButtons(const std::vector<int>& buttons_active);
 private:
     std::shared_ptr<ScriptedButtonList> scripted_button_list;
     bool is_in_use {false};
