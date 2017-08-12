@@ -109,6 +109,10 @@ void ScriptRunner::NotifyFrameFinished() {
 }
 
 void ScriptRunner::SaveScreenshot() {
+    char buf[12];
+    sprintf(buf, "%i.bmp", frame_number);
+
+
     const int w = 400;//render_window->GetActiveConfig().min_client_area_size.first;
     const int h = 480;//render_window->GetActiveConfig().min_client_area_size.second;
     unsigned char* pixels = new unsigned char[w * h * 3];
@@ -121,7 +125,7 @@ void ScriptRunner::SaveScreenshot() {
     unsigned char file_header[14] = { 'B', 'M', size, size >> 8, size >> 16, size >> 24, 0, 0, 0, 0, 14 + 40, 0, 0, 0 };
     unsigned char info_header[40] = { 40, 0, 0, 0, w, w >> 8, w >> 16, w >> 24, h, h >> 8, h >> 16, h >> 24, 1, 0, 24, 0, 0, 0, 0, 0, image_bytes, image_bytes >> 8, image_bytes >> 16, image_bytes >> 24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-    FILE *fp = fopen("out.bmp", "wb");
+    FILE *fp = fopen(buf, "wb");
     fwrite(file_header, sizeof(file_header), 1, fp);
     fwrite(info_header, sizeof(info_header), 1, fp);
     fwrite(pixels, w * h * 3, 1, fp);
