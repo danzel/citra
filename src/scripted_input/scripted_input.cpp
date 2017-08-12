@@ -31,8 +31,7 @@ void Shutdown() {
 }
 
 bool IsInUse() {
-    //TODO return script_runner.HasScript();
-    return scripted_buttons.get()->IsInUse();
+    return script_runner.HasScript();
 }
 
 void NotifyFrameFinished() {

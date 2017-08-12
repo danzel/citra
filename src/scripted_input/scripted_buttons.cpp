@@ -63,14 +63,9 @@ std::unique_ptr<Input::ButtonDevice> ScriptedButtons::Create(const Common::Param
     int index = IndexOfButton(button_str);
     if (index >= 0) {
         scripted_button_list.get()->buttons[index] = button.get();
-        is_in_use = true;
     }
 
     return std::move(button);
-}
-
-bool ScriptedButtons::IsInUse() {
-    return is_in_use;
 }
 
 void ScriptedButtons::SetActiveButtons(const std::vector<int>& buttons_active) {

@@ -31,6 +31,7 @@ class ScriptRunner final {
 public:
     void SetButtons(std::shared_ptr<ScriptedButtons> buttons);
     void LoadScript(std::string script_name);
+    bool HasScript() const;
 
     void NotifyFrameFinished();
 private:

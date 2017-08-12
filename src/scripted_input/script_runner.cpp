@@ -77,6 +77,10 @@ void ScriptRunner::LoadScript(std::string script_name) {
     fclose(file);
 }
 
+bool ScriptRunner::HasScript() const {
+    return script.size() > 0;
+}
+
 void ScriptRunner::NotifyFrameFinished() {
     frame_number++;
 
