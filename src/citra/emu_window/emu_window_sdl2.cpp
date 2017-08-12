@@ -16,8 +16,8 @@
 #include "core/settings.h"
 #include "input_common/keyboard.h"
 #include "input_common/main.h"
-#include "scripted_input/scripted_input.h"
 #include "network/network.h"
+#include "scripted_input/scripted_input.h"
 
 void EmuWindow_SDL2::OnMouseMotion(s32 x, s32 y) {
     TouchMoved((unsigned)std::max(x, 0), (unsigned)std::max(y, 0));

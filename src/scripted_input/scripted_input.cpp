@@ -7,11 +7,10 @@
 #include "scripted_input/scripted_buttons.h"
 #include "scripted_input/scripted_input.h"
 
-
 namespace ScriptedInput {
 
 static std::shared_ptr<ScriptedButtons> scripted_buttons;
-//TODO: static std::shared_ptr<ScriptedAnalog> scripted_analog;
+// TODO: static std::shared_ptr<ScriptedAnalog> scripted_analog;
 static ScriptRunner script_runner;
 
 void Init() {

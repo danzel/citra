@@ -28,7 +28,7 @@ void ScriptRunner::LoadScript(std::string script_name) {
     while (fgets(line, SCRIPT_MAX_LINE, file) != NULL) {
         lineno++;
 
-        //Remove end of line bytes and comments
+        // Remove end of line bytes and comments
         char terminal_chars[] = "\r\n#";
         for (int i = 0; i < strlen(terminal_chars); i++) {
             char* index = strchr(line, terminal_chars[i]);
@@ -42,28 +42,25 @@ void ScriptRunner::LoadScript(std::string script_name) {
         char* pch = strtok(line, " ");
         while (pch != NULL) {
             if (item.type == ScriptItemType::Undefined) {
-                //The first token is a number or "screenshot"
+                // The first token is a number or "screenshot"
                 if (strcmp("screenshot", pch) == 0) {
                     item.type = ScriptItemType::Screenshot;
-                }
-                else {
+                } else {
                     int res = sscanf(pch, "%d", &item.frames);
                     if (res == 1 && item.frames > 0) {
                         item.type = ScriptItemType::Run;
-                    }
-                    else {
+                    } else {
                         LOG_ERROR(ScriptedInput, "Unable to parse line %i of script file", lineno);
                     }
                 }
-            }
-            else {
-                //The following should be buttons
+            } else {
+                // The following should be buttons
                 int index = IndexOfButton(pch);
                 if (index != -1) {
                     item.buttons_active.push_back(index);
-                }
-                else {
-                    LOG_ERROR(ScriptedInput, "Unable to parse line %i, button %s is unknown", lineno, pch);
+                } else {
+                    LOG_ERROR(ScriptedInput, "Unable to parse line %i, button %s is unknown",
+                              lineno, pch);
                 }
             }
             pch = strtok(NULL, " ,.-");
@@ -84,24 +81,25 @@ bool ScriptRunner::HasScript() const {
 void ScriptRunner::NotifyFrameFinished() {
     frame_number++;
 
-    //Script already finished
+    // Script already finished
     if (script_index >= script.size()) {
         return;
     }
 
-    //If we're done with the current item, move to the next
+    // If we're done with the current item, move to the next
     script_frame++;
     if (script_frame == script[script_index].frames) {
         script_frame = 0;
         script_index++;
 
-        //take screenshots if we hit a screenshot item
-        while (script_index < script.size() && script[script_index].type == ScriptItemType::Screenshot) {
+        // take screenshots if we hit a screenshot item
+        while (script_index < script.size() &&
+               script[script_index].type == ScriptItemType::Screenshot) {
             SaveScreenshot();
             script_index++;
         }
 
-        //Now we'll be at the next run item, so set the buttons up
+        // Now we'll be at the next run item, so set the buttons up
         if (script_index < script.size()) {
             scripted_buttons.get()->SetActiveButtons(script[script_index].buttons_active);
         }
@@ -112,25 +110,63 @@ void ScriptRunner::SaveScreenshot() {
     char buf[12];
     sprintf(buf, "%i.bmp", frame_number);
 
-
-    const int w = 400;//render_window->GetActiveConfig().min_client_area_size.first;
-    const int h = 480;//render_window->GetActiveConfig().min_client_area_size.second;
+    const int w = 400; // render_window->GetActiveConfig().min_client_area_size.first;
+    const int h = 480; // render_window->GetActiveConfig().min_client_area_size.second;
     unsigned char* pixels = new unsigned char[w * h * 3];
     glReadPixels(0, 0, w, h, GL_BGR, GL_UNSIGNED_BYTE, pixels);
 
-    //BMP
-    //ref https://web.archive.org/web/20080912171714/http://www.fortunecity.com/skyscraper/windows/364/bmpffrmt.html
+    // BMP
+    // https://web.archive.org/web/20080912171714/http://www.fortunecity.com/skyscraper/windows/364/bmpffrmt.html
     int image_bytes = (w * h * 3);
     int size = 14 + 40 + image_bytes;
-    unsigned char file_header[14] = { 'B', 'M', size, size >> 8, size >> 16, size >> 24, 0, 0, 0, 0, 14 + 40, 0, 0, 0 };
-    unsigned char info_header[40] = { 40, 0, 0, 0, w, w >> 8, w >> 16, w >> 24, h, h >> 8, h >> 16, h >> 24, 1, 0, 24, 0, 0, 0, 0, 0, image_bytes, image_bytes >> 8, image_bytes >> 16, image_bytes >> 24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    unsigned char file_header[14] = {'B', 'M', size, size >> 8, size >> 16, size >> 24, 0,
+                                     0,   0,   0,    14 + 40,   0,          0,          0};
+    unsigned char info_header[40] = {40,
+                                     0,
+                                     0,
+                                     0,
+                                     w,
+                                     w >> 8,
+                                     w >> 16,
+                                     w >> 24,
+                                     h,
+                                     h >> 8,
+                                     h >> 16,
+                                     h >> 24,
+                                     1,
+                                     0,
+                                     24,
+                                     0,
+                                     0,
+                                     0,
+                                     0,
+                                     0,
+                                     image_bytes,
+                                     image_bytes >> 8,
+                                     image_bytes >> 16,
+                                     image_bytes >> 24,
+                                     0,
+                                     0,
+                                     0,
+                                     0,
+                                     0,
+                                     0,
+                                     0,
+                                     0,
+                                     0,
+                                     0,
+                                     0,
+                                     0,
+                                     0,
+                                     0,
+                                     0,
+                                     0};
 
-    FILE *fp = fopen(buf, "wb");
+    FILE* fp = fopen(buf, "wb");
     fwrite(file_header, sizeof(file_header), 1, fp);
     fwrite(info_header, sizeof(info_header), 1, fp);
     fwrite(pixels, w * h * 3, 1, fp);
     fclose(fp);
-
 
     delete[] pixels;
 }

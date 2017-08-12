@@ -9,18 +9,14 @@
 
 namespace ScriptedInput {
 
-enum class ScriptItemType {
-    Undefined,
-    Run,
-    Screenshot
-};
+enum class ScriptItemType { Undefined, Run, Screenshot };
 
 class ScriptItem {
 public:
     static ScriptItem Screenshot;
 
-    ScriptItemType type{ ScriptItemType::Undefined };
-    int frames {0};
+    ScriptItemType type{ScriptItemType::Undefined};
+    int frames{0};
     std::vector<int> buttons_active;
 };
 
@@ -34,11 +30,12 @@ public:
     bool HasScript() const;
 
     void NotifyFrameFinished();
+
 private:
     std::vector<ScriptItem> script;
-    int frame_number {0};
-    int script_index {0};
-    int script_frame {0};
+    int frame_number{0};
+    int script_index{0};
+    int script_frame{0};
 
     std::shared_ptr<ScriptedButtons> scripted_buttons;
 

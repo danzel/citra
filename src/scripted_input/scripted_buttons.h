@@ -27,6 +27,7 @@ public:
     std::unique_ptr<Input::ButtonDevice> Create(const Common::ParamPackage& params) override;
 
     void SetActiveButtons(const std::vector<int>& buttons_active);
+
 private:
     std::shared_ptr<ScriptedButtonList> scripted_button_list;
 };

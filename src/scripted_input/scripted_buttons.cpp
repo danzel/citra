@@ -7,23 +7,8 @@
 
 const int button_count = 15;
 
-std::string button_name_to_index[] = {
-    "a",
-    "b",
-    "x",
-    "y",
-    "up",
-    "down",
-    "left",
-    "right",
-    "l",
-    "r",
-    "start",
-    "select",
-    "zl",
-    "zr",
-    "home"
-};
+std::string button_name_to_index[] = {"a", "b", "x",     "y",      "up", "down", "left", "right",
+                                      "l", "r", "start", "select", "zl", "zr",   "home"};
 
 namespace ScriptedInput {
 
@@ -44,6 +29,7 @@ class ScriptedButton final : public Input::ButtonDevice {
     }
 
     friend class ScriptedButtons;
+
 private:
     std::atomic<bool> status{false};
 };
@@ -52,7 +38,6 @@ class ScriptedButtonList {
 public:
     ScriptedButton* buttons[button_count];
 };
-
 
 ScriptedButtons::ScriptedButtons() : scripted_button_list{std::make_shared<ScriptedButtonList>()} {}
 
@@ -81,9 +66,11 @@ void ScriptedButtons::SetActiveButtons(const std::vector<int>& buttons_active) {
         auto button = scripted_button_list.get()->buttons[buttons_active[i]];
         if (button) {
             button->status.store(true);
-        }
-        else {
-            LOG_ERROR(ScriptedInput, "Button %s isn't mapped but is scripted, it should have engine:scripted,button:%s", button_name_to_index[i], button_name_to_index[i]);
+        } else {
+            LOG_ERROR(
+                ScriptedInput,
+                "Button %s isn't mapped but is scripted, it should have engine:scripted,button:%s",
+                button_name_to_index[i], button_name_to_index[i]);
         }
     }
 }
