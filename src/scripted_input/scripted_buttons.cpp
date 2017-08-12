@@ -34,8 +34,8 @@ int IndexOfButton(const std::string& button) {
         }
     }
 
-    //TODO: Log an error
-    return -1; //home
+    LOG_ERROR(ScriptedInput, "Don't know about a button named %s", button.c_str());
+    return -1;
 }
 
 class ScriptedButton final : public Input::ButtonDevice {
@@ -49,7 +49,6 @@ private:
 };
 
 class ScriptedButtonList {
-    //TODO: Do i need to memset(0) buttons?
 public:
     ScriptedButton* buttons[button_count];
 };
@@ -89,7 +88,7 @@ void ScriptedButtons::SetActiveButtons(const std::vector<int>& buttons_active) {
             button->status.store(true);
         }
         else {
-            //TODO: Warning that button isn't mapped to scripting
+            LOG_ERROR(ScriptedInput, "Button %s isn't mapped but is scripted, it should have engine:scripted,button:%s", button_name_to_index[i], button_name_to_index[i]);
         }
     }
 }

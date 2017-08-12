@@ -3,6 +3,7 @@
 // Refer to the license.txt file included.
 
 #include <glad/glad.h>
+#include "common/logging/log.h"
 #include "scripted_input/script_runner.h"
 #include "scripted_input/scripted_buttons.h"
 
@@ -15,10 +16,9 @@ void ScriptRunner::SetButtons(std::shared_ptr<ScriptedButtons> buttons) {
 }
 
 void ScriptRunner::LoadScript(std::string script_name) {
-    //TODO: Load from a file specified in config
     FILE* file = fopen(script_name.c_str(), "r");
     if (!file) {
-        //TODO: Log error
+        LOG_ERROR(ScriptedInput, "script_file %s does not exist", script_name.c_str());
         return;
     }
 
@@ -52,7 +52,7 @@ void ScriptRunner::LoadScript(std::string script_name) {
                         item.type = ScriptItemType::Run;
                     }
                     else {
-                        //TODO: Parse error
+                        LOG_ERROR(ScriptedInput, "Unable to parse line %i of script file", lineno);
                     }
                 }
             }
@@ -63,7 +63,7 @@ void ScriptRunner::LoadScript(std::string script_name) {
                     item.buttons_active.push_back(index);
                 }
                 else {
-                    //TODO: Parse error
+                    LOG_ERROR(ScriptedInput, "Unable to parse line %i, button %s is unknown", lineno, pch);
                 }
             }
             pch = strtok(NULL, " ,.-");
@@ -82,27 +82,23 @@ void ScriptRunner::NotifyFrameFinished() {
 
     //Script already finished
     if (script_index >= script.size()) {
-        //printf("already done\n");
         return;
     }
 
     //If we're done with the current item, move to the next
     script_frame++;
     if (script_frame == script[script_index].frames) {
-        printf("At frame %i, progressing to index %i\n", frame_number, script_index + 1);
         script_frame = 0;
         script_index++;
 
         //take screenshots if we hit a screenshot item
         while (script_index < script.size() && script[script_index].type == ScriptItemType::Screenshot) {
-            //TODO: Screenshot
             SaveScreenshot();
             script_index++;
         }
 
         //Now we'll be at the next run item, so set the buttons up
         if (script_index < script.size()) {
-            printf("changing button\n");
             scripted_buttons.get()->SetActiveButtons(script[script_index].buttons_active);
         }
     }

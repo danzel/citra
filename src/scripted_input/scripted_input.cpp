@@ -37,7 +37,6 @@ bool IsInUse() {
 
 void NotifyFrameFinished() {
     script_runner.NotifyFrameFinished();
-    //TODO? scripted_buttons.get()->NotifyFrameFinished();
 }
 
 } // namespace ScriptedInput
