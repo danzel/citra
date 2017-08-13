@@ -18,6 +18,11 @@ class ScriptedButtonList;
 */
 class ScriptedButtons final : public Input::Factory<Input::ButtonDevice> {
 public:
+    /**
+    * Overrides the Settings for buttons so they are controlled by us
+    */
+    static void OverrideControlsSettings();
+
     ScriptedButtons();
 
     /**

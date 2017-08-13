@@ -22,6 +22,8 @@ void Init() {
 void LoadScript(std::string script_name) {
     if (script_name.length() > 0) {
         script_runner.LoadScript(script_name);
+
+        ScriptedButtons::OverrideControlsSettings();
     }
 }
 

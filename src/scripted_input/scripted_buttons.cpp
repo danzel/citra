@@ -4,6 +4,7 @@
 
 #include <atomic>
 #include <vector>
+#include "core/settings.h"
 #include "scripted_input/scripted_buttons.h"
 
 const int button_count = 15;
@@ -39,6 +40,12 @@ class ScriptedButtonList {
 public:
     ScriptedButton* buttons[button_count];
 };
+
+void ScriptedButtons::OverrideControlsSettings() {
+    for (int i = 0; i < button_count; i++) {
+        Settings::values.buttons[i] = "engine:scripted,button:" + button_name_to_index[i];
+    }
+}
 
 ScriptedButtons::ScriptedButtons() : scripted_button_list{std::make_shared<ScriptedButtonList>()} {}
 
