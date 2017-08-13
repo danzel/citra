@@ -154,6 +154,7 @@ void Config::ReadValues() {
 
     // Scripted Input
     Settings::values.script_name = sdl2_config->Get("ScriptedInput", "script_name", "");
+    Settings::values.close_at_end = sdl2_config->GetBoolean("ScriptedInput", "close_at_end", false);
 
     // Web Service
     Settings::values.telemetry_endpoint_url = sdl2_config->Get(

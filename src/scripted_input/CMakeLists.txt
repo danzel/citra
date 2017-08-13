@@ -14,4 +14,4 @@ create_directory_groups(${SRCS} ${HEADERS})
 
 add_library(scripted_input STATIC ${SRCS} ${HEADERS})
 target_link_libraries(scripted_input PUBLIC common core)
-target_link_libraries(scripted_input PRIVATE glad)
+target_link_libraries(scripted_input PRIVATE glad SDL2)

@@ -129,6 +129,7 @@ struct Values {
 
     // ScriptedInput
     std::string script_name;
+    bool close_at_end;
 
     // WebService
     std::string telemetry_endpoint_url;

@@ -19,9 +19,9 @@ void Init() {
     script_runner.SetButtons(scripted_buttons);
 }
 
-void LoadScript(std::string script_name) {
+void LoadScript(std::string script_name, bool close_at_end) {
     if (script_name.length() > 0) {
-        script_runner.LoadScript(script_name);
+        script_runner.LoadScript(script_name, close_at_end);
 
         ScriptedButtons::OverrideControlsSettings();
     }

@@ -36,7 +36,7 @@ void Apply() {
     Service::HID::ReloadInputDevices();
     Service::IR::ReloadInputDevices();
 
-    ScriptedInput::LoadScript(values.script_name);
+    ScriptedInput::LoadScript(values.script_name, values.close_at_end);
 }
 
 } // namespace

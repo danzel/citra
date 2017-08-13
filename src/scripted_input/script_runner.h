@@ -27,7 +27,7 @@ public:
 class ScriptRunner final {
 public:
     void SetButtons(std::shared_ptr<ScriptedButtons> buttons);
-    void LoadScript(std::string script_name);
+    void LoadScript(std::string script_name, bool close_at_end);
     bool HasScript() const;
 
     void NotifyFrameFinished();
@@ -39,6 +39,7 @@ private:
     int script_frame{0};
 
     std::shared_ptr<ScriptedButtons> scripted_buttons;
+    bool close_at_end;
 
     void SaveScreenshot();
 };

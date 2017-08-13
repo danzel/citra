@@ -2,6 +2,7 @@
 // Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
+#include <SDL.h>
 #include <glad/glad.h>
 #include <string.h>
 #include "common/logging/log.h"
@@ -16,7 +17,9 @@ void ScriptRunner::SetButtons(std::shared_ptr<ScriptedButtons> buttons) {
     scripted_buttons = buttons;
 }
 
-void ScriptRunner::LoadScript(std::string script_name) {
+void ScriptRunner::LoadScript(std::string script_name, bool close) {
+    close_at_end = close;
+
     FILE* file = fopen(script_name.c_str(), "r");
     if (!file) {
         LOG_ERROR(ScriptedInput, "script_file %s does not exist", script_name.c_str());
@@ -108,6 +111,11 @@ void ScriptRunner::NotifyFrameFinished() {
 
     if (script_index >= script.size()) {
         LOG_INFO(ScriptedInput, "Scripted Input finished at frame %i", frame_number);
+        if (close_at_end) {
+            SDL_Event sdlevent;
+            sdlevent.type = SDL_QUIT;
+            SDL_PushEvent(&sdlevent);
+        }
     }
 }
 

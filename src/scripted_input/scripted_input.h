@@ -11,7 +11,7 @@ namespace ScriptedInput {
 /// Initializes and registers the input device factories.
 void Init();
 
-void LoadScript(std::string script_name);
+void LoadScript(std::string script_name, bool close_at_end);
 
 /// Deregisters the input device factories and shuts them down.
 void Shutdown();

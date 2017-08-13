@@ -172,6 +172,9 @@ gdbstub_port=24689
 [ScriptedInput]
 # Script file to load for simulated input
 script_name=
+# Whether to close the emulator when the script has finished
+# 0 (default): Don't Close, 1: Close
+close_at_end=
 
 [WebService]
 # Endpoint URL for submitting telemetry data
