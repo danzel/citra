@@ -8,12 +8,12 @@
 
 namespace ScriptedInput {
 
-/// Initializes and registers all built-in input device factories.
+/// Initializes and registers the input device factories.
 void Init();
 
 void LoadScript(std::string script_name);
 
-/// Unresisters all build-in input device factories and shut them down.
+/// Deregisters the input device factories and shuts them down.
 void Shutdown();
 
 class ScriptedButtons;
