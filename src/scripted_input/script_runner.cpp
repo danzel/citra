@@ -6,8 +6,10 @@
 #include <glad/glad.h>
 #include <string.h>
 #include "common/logging/log.h"
+#include "core/frontend/emu_window.h"
 #include "scripted_input/script_runner.h"
 #include "scripted_input/scripted_buttons.h"
+#include "video_core/video_core.h"
 
 #define SCRIPT_MAX_LINE 200
 
@@ -123,8 +125,8 @@ void ScriptRunner::SaveScreenshot() {
     char buf[12];
     sprintf(buf, "%i.bmp", frame_number);
 
-    const int w = 400; // render_window->GetActiveConfig().min_client_area_size.first;
-    const int h = 480; // render_window->GetActiveConfig().min_client_area_size.second;
+    const int w = VideoCore::g_emu_window->GetActiveConfig().min_client_area_size.first;
+    const int h = VideoCore::g_emu_window->GetActiveConfig().min_client_area_size.second;
     unsigned char* pixels = new unsigned char[w * h * 3];
     glReadPixels(0, 0, w, h, GL_BGR, GL_UNSIGNED_BYTE, pixels);
 
