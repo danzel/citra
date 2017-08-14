@@ -18,6 +18,7 @@
 #include "core/hle/service/hid/hid_spvr.h"
 #include "core/hle/service/hid/hid_user.h"
 #include "core/hle/service/service.h"
+#include "core/movie.h"
 #include "video_core/video_core.h"
 
 namespace Service {
@@ -132,6 +133,8 @@ static void UpdatePadCallback(u64 userdata, int cycles_late) {
     state.circle_left.Assign(direction.left);
     state.circle_right.Assign(direction.right);
 
+    Movie::HandlePadAndCircleStatus(state, circle_pad_x, circle_pad_y);
+
     mem->pad.current_state.hex = state.hex;
     mem->pad.index = next_pad_index;
     next_pad_index = (next_pad_index + 1) % mem->pad.entries.size();
@@ -169,6 +172,8 @@ static void UpdatePadCallback(u64 userdata, int cycles_late) {
     std::tie(touch_entry.x, touch_entry.y, pressed) = VideoCore::g_emu_window->GetTouchState();
     touch_entry.valid.Assign(pressed ? 1 : 0);
 
+    Movie::HandleTouchStatus(touch_entry);
+
     // TODO(bunnei): We're not doing anything with offset 0xA8 + 0x18 of HID SharedMemory, which
     // supposedly is "Touch-screen entry, which contains the raw coordinate data prior to being
     // converted to pixel coordinates." (http://3dbrew.org/wiki/HID_Shared_Memory#Offset_0xA8).
@@ -197,6 +202,8 @@ static void UpdateAccelerometerCallback(u64 userdata, int cycles_late) {
         mem->accelerometer.entries[mem->accelerometer.index];
     std::tie(accelerometer_entry.x, accelerometer_entry.y, accelerometer_entry.z) =
         VideoCore::g_emu_window->GetAccelerometerState();
+
+    Movie::HandleAccelerometerStatus(accelerometer_entry);
 
     // Make up "raw" entry
     // TODO(wwylele):
@@ -229,6 +236,8 @@ static void UpdateGyroscopeCallback(u64 userdata, int cycles_late) {
     GyroscopeDataEntry& gyroscope_entry = mem->gyroscope.entries[mem->gyroscope.index];
     std::tie(gyroscope_entry.x, gyroscope_entry.y, gyroscope_entry.z) =
         VideoCore::g_emu_window->GetGyroscopeState();
+
+    Movie::HandleGyroscopeStatus(gyroscope_entry);
 
     // Make up "raw" entry
     mem->gyroscope.raw_entry.x = gyroscope_entry.x;
