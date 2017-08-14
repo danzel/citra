@@ -5,6 +5,7 @@
 #include <vector>
 #include "common/bit_field.h"
 #include "common/file_util.h"
+#include "common/logging/log.h"
 #include "core/movie.h"
 
 namespace Movie {
@@ -85,7 +86,7 @@ bool IsRecordingInput() {
 
 void CheckInputEnd() {
     if (current_byte + sizeof(ControllerState) > temp_input.size()) {
-        // TODO: Log finished playback
+        LOG_INFO(Movie, "Playback finished");
         play_mode = PlayMode::None;
     }
 }
@@ -96,7 +97,7 @@ void Play(Service::HID::PadState& pad_state, s16& circle_pad_x, s16& circle_pad_
     current_byte += sizeof(ControllerState);
 
     if (s.type != ControllerStateType::PadAndCircle) {
-        //TODO LOG ERROR
+        LOG_ERROR(Movie, "Expected to read type %d, but found %d. Your playback will be out of sync", ControllerStateType::PadAndCircle, s.type);
         return;
     }
 
@@ -127,7 +128,7 @@ void Play(Service::HID::TouchDataEntry &touch_data) {
     current_byte += sizeof(ControllerState);
 
     if (s.type != ControllerStateType::Touch) {
-        //TODO LOG ERROR
+        LOG_ERROR(Movie, "Expected to read type %d, but found %d. Your playback will be out of sync", ControllerStateType::Touch, s.type);
         return;
     }
 
@@ -142,7 +143,7 @@ void Play(Service::HID::AccelerometerDataEntry &accelerometer_data) {
     current_byte += sizeof(ControllerState);
 
     if (s.type != ControllerStateType::Accelerometer) {
-        //TODO LOG ERROR
+        LOG_ERROR(Movie, "Expected to read type %d, but found %d. Your playback will be out of sync", ControllerStateType::Accelerometer, s.type);
         return;
     }
 
@@ -157,7 +158,7 @@ void Play(Service::HID::GyroscopeDataEntry &gyroscope_data) {
     current_byte += sizeof(ControllerState);
 
     if (s.type != ControllerStateType::Gyroscope) {
-        //TODO LOG ERROR
+        LOG_ERROR(Movie, "Expected to read type %d, but found %d. Your playback will be out of sync", ControllerStateType::Gyroscope, s.type);
         return;
     }
 
@@ -172,7 +173,7 @@ void Play(Service::IR::PadState& pad_state, s16& c_stick_x, s16& c_stick_y) {
     current_byte += sizeof(ControllerState);
 
     if (s.type != ControllerStateType::CStick) {
-        //TODO LOG ERROR
+        LOG_ERROR(Movie, "Expected to read type %d, but found %d. Your playback will be out of sync", ControllerStateType::CStick, s.type);
         return;
     }
 
@@ -282,7 +283,6 @@ void HandlePadAndCircleStatus(Service::HID::PadState& pad_state, s16& circle_pad
         current_byte = 0;
     }
 
-
     if (IsPlayingInput()) {
         Play(pad_state, circle_pad_x, circle_pad_y);
         CheckInputEnd();
@@ -329,5 +329,4 @@ void HandleCStick(Service::IR::PadState& pad_state, s16& c_stick_x, s16& c_stick
         Record(pad_state, c_stick_x, c_stick_y);
     }
 }
-
 }
