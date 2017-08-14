@@ -9,7 +9,7 @@
 
 namespace Movie {
 
-enum class ControllerStateType : u8 { PadAndCircle, Touch, Accelerometer, Gyroscope };
+enum class ControllerStateType : u8 { PadAndCircle, Touch, Accelerometer, Gyroscope, CStick };
 
 #pragma pack(push, 1)
 struct ControllerState {
@@ -60,6 +60,14 @@ struct ControllerState {
             s16 y;
             s16 z;
         } Gyroscope;
+
+        struct {
+            //MAX_CSTICK_RADIUS in ir_rst.cpp fits in one byte
+            u8 x;
+            u8 y;
+            bool zl;
+            bool zr;
+        } CStick;
     };
 };
 static_assert(sizeof(ControllerState) == 7, "ControllerState should be 7 bytes");
@@ -158,6 +166,22 @@ void Play(Service::HID::GyroscopeDataEntry &gyroscope_data) {
     gyroscope_data.z = s.Gyroscope.z;
 }
 
+void Play(Service::IR::PadState& pad_state, s16& c_stick_x, s16& c_stick_y) {
+    ControllerState s;
+    memcpy(&s, &temp_input[current_byte], sizeof(ControllerState));
+    current_byte += sizeof(ControllerState);
+
+    if (s.type != ControllerStateType::CStick) {
+        //TODO LOG ERROR
+        return;
+    }
+
+    c_stick_x = s.CStick.x;
+    c_stick_y = s.CStick.y;
+    pad_state.zl.Assign(s.CStick.zl);
+    pad_state.zr.Assign(s.CStick.zr);
+}
+
 void Record(const Service::HID::PadState& pad_state, const s16& circle_pad_x, const s16& circle_pad_y) {
     ControllerState s;
     s.type = ControllerStateType::PadAndCircle;
@@ -233,6 +257,20 @@ void Record(const Service::HID::GyroscopeDataEntry &gyroscope_data) {
     current_byte += sizeof(ControllerState);
 }
 
+void Record(const Service::IR::PadState& pad_state, const s16& c_stick_x, const s16& c_stick_y) {
+    ControllerState s;
+    s.type = ControllerStateType::CStick;
+
+    s.CStick.x = static_cast<u8>(c_stick_x);
+    s.CStick.y = static_cast<u8>(c_stick_y);
+    s.CStick.zl = pad_state.zl;
+    s.CStick.zr = pad_state.zr;
+
+    temp_input.resize(current_byte + sizeof(ControllerState));
+    memcpy(&temp_input[current_byte], &s, sizeof(ControllerState));
+    current_byte += sizeof(ControllerState);
+}
+
 void HandlePadAndCircleStatus(Service::HID::PadState& pad_state, s16& circle_pad_x, s16& circle_pad_y) {
 
     // TODO: Unhack this, will need a way to specify to load a movie (also movie will have a header)
@@ -279,6 +317,16 @@ void HandleGyroscopeStatus(Service::HID::GyroscopeDataEntry& gyroscope_data) {
     }
     else if (IsRecordingInput()) {
         Record(gyroscope_data);
+    }
+}
+
+void HandleCStick(Service::IR::PadState& pad_state, s16& c_stick_x, s16& c_stick_y) {
+    if (IsPlayingInput()) {
+        Play(pad_state, c_stick_x, c_stick_y);
+        CheckInputEnd();
+    }
+    else if (IsRecordingInput()) {
+        Record(pad_state, c_stick_x, c_stick_y);
     }
 }
 

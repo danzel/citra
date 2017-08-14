@@ -5,6 +5,7 @@
 #pragma once
 
 #include "core/hle/service/hid/hid.h"
+#include "core/hle/service/ir/ir_rst.h"
 
 namespace Movie {
 
@@ -22,6 +23,8 @@ void HandleTouchStatus(Service::HID::TouchDataEntry& touch_data);
 void HandleAccelerometerStatus(Service::HID::AccelerometerDataEntry& accelerometer_data);
 
 void HandleGyroscopeStatus(Service::HID::GyroscopeDataEntry& gyroscope_data);
+
+void HandleCStick(Service::IR::PadState& pad_state, s16& c_stick_x, s16& c_stick_y);
 
 // TODO: Handle C-Stick
 }
