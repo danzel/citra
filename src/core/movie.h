@@ -9,13 +9,6 @@
 
 namespace Movie {
 
-enum class PlayMode
-{
-    None = 0,
-    Recording,
-    Playing
-};
-
 void Init();
 
 void Shutdown();

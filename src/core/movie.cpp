@@ -10,6 +10,8 @@
 
 namespace Movie {
 
+enum class PlayMode { None = 0, Recording, Playing };
+
 enum class ControllerStateType : u8 { PadAndCircle, Touch, Accelerometer, Gyroscope, CStick };
 
 #pragma pack(push, 1)
@@ -38,7 +40,7 @@ struct ControllerState {
                 BitField<14, 1, u32> circle_up;
                 BitField<15, 1, u32> circle_down;
 
-                //MAX_CIRCLEPAD_POS in hid.cpp fits in one byte
+                // MAX_CIRCLEPAD_POS in hid.cpp fits in one byte
                 BitField<16, 8, u32> circle_pad_x;
                 BitField<24, 8, u32> circle_pad_y;
             };
@@ -63,7 +65,7 @@ struct ControllerState {
         } Gyroscope;
 
         struct {
-            //MAX_CSTICK_RADIUS in ir_rst.cpp fits in one byte
+            // MAX_CSTICK_RADIUS in ir_rst.cpp fits in one byte
             u8 x;
             u8 y;
             bool zl;
@@ -122,7 +124,7 @@ void Play(Service::HID::PadState& pad_state, s16& circle_pad_x, s16& circle_pad_
     circle_pad_y = s.PadAndCircle.circle_pad_y;
 }
 
-void Play(Service::HID::TouchDataEntry &touch_data) {
+void Play(Service::HID::TouchDataEntry& touch_data) {
     ControllerState s;
     memcpy(&s, &temp_input[current_byte], sizeof(ControllerState));
     current_byte += sizeof(ControllerState);
@@ -137,7 +139,7 @@ void Play(Service::HID::TouchDataEntry &touch_data) {
     touch_data.valid.Assign(s.Touch.valid);
 }
 
-void Play(Service::HID::AccelerometerDataEntry &accelerometer_data) {
+void Play(Service::HID::AccelerometerDataEntry& accelerometer_data) {
     ControllerState s;
     memcpy(&s, &temp_input[current_byte], sizeof(ControllerState));
     current_byte += sizeof(ControllerState);
@@ -152,7 +154,7 @@ void Play(Service::HID::AccelerometerDataEntry &accelerometer_data) {
     accelerometer_data.z = s.Accelerometer.z;
 }
 
-void Play(Service::HID::GyroscopeDataEntry &gyroscope_data) {
+void Play(Service::HID::GyroscopeDataEntry& gyroscope_data) {
     ControllerState s;
     memcpy(&s, &temp_input[current_byte], sizeof(ControllerState));
     current_byte += sizeof(ControllerState);
@@ -212,7 +214,7 @@ void Record(const Service::HID::PadState& pad_state, const s16& circle_pad_x, co
     current_byte += sizeof(ControllerState);
 }
 
-void Record(const Service::HID::TouchDataEntry &touch_data) {
+void Record(const Service::HID::TouchDataEntry& touch_data) {
     ControllerState s;
     s.type = ControllerStateType::Touch;
 
@@ -225,7 +227,7 @@ void Record(const Service::HID::TouchDataEntry &touch_data) {
     current_byte += sizeof(ControllerState);
 }
 
-void Record(const Service::HID::AccelerometerDataEntry &accelerometer_data) {
+void Record(const Service::HID::AccelerometerDataEntry& accelerometer_data) {
     ControllerState s;
     s.type = ControllerStateType::Accelerometer;
 
@@ -238,7 +240,7 @@ void Record(const Service::HID::AccelerometerDataEntry &accelerometer_data) {
     current_byte += sizeof(ControllerState);
 }
 
-void Record(const Service::HID::GyroscopeDataEntry &gyroscope_data) {
+void Record(const Service::HID::GyroscopeDataEntry& gyroscope_data) {
     ControllerState s;
     s.type = ControllerStateType::Gyroscope;
 
@@ -297,7 +299,8 @@ void Shutdown() {
     }
 }
 
-void HandlePadAndCircleStatus(Service::HID::PadState& pad_state, s16& circle_pad_x, s16& circle_pad_y) {
+void HandlePadAndCircleStatus(Service::HID::PadState& pad_state,
+                              s16& circle_pad_x, s16& circle_pad_y) {
     if (IsPlayingInput()) {
         Play(pad_state, circle_pad_x, circle_pad_y);
         CheckInputEnd();
