@@ -73,9 +73,9 @@ int main(int argc, char** argv) {
     std::string filepath;
 
     static struct option long_options[] = {
-        {"gdbport", required_argument, 0, 'g'}, {"movie-record", required_argument, 0, 'r'},
+        {"gdbport", required_argument, 0, 'g'},    {"movie-record", required_argument, 0, 'r'},
         {"movie-play", required_argument, 0, 'p'}, {"help", no_argument, 0, 'h'},
-        {"version", no_argument, 0, 'v'}, {0, 0, 0, 0},
+        {"version", no_argument, 0, 'v'},          {0, 0, 0, 0},
     };
 
     while (optind < argc) {
