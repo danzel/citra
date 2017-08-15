@@ -4,8 +4,19 @@
 
 #pragma once
 
-#include "core/hle/service/hid/hid.h"
-#include "core/hle/service/ir/ir_rst.h"
+#include "common/common_types.h"
+
+namespace Service {
+namespace HID {
+struct AccelerometerDataEntry;
+struct GyroscopeDataEntry;
+struct PadState;
+struct TouchDataEntry;
+}
+namespace IR {
+union PadState;
+}
+}
 
 namespace Movie {
 

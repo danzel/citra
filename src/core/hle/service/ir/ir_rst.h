@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "common/bit_field.h"
+#include "common/common_types.h"
 #include "core/hle/service/service.h"
 
 namespace Service {

@@ -57,8 +57,8 @@ int main(int argc, char** argv) {
     int option_index = 0;
     bool use_gdbstub = Settings::values.use_gdbstub;
     u32 gdb_port = static_cast<u32>(Settings::values.gdbstub_port);
-    std::string movie_record = "";
-    std::string movie_play = "";
+    std::string movie_record;
+    std::string movie_play;
 
     char* endarg;
 #ifdef _WIN32
@@ -140,8 +140,8 @@ int main(int argc, char** argv) {
     // Apply the command line arguments
     Settings::values.gdbstub_port = gdb_port;
     Settings::values.use_gdbstub = use_gdbstub;
-    Settings::values.movie_play = movie_play;
-    Settings::values.movie_record = movie_record;
+    Settings::values.movie_play = std::move(movie_play);
+    Settings::values.movie_record = std::move(movie_record);
     Settings::Apply();
 
     std::unique_ptr<EmuWindow_SDL2> emu_window{std::make_unique<EmuWindow_SDL2>()};

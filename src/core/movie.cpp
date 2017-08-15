@@ -2,18 +2,23 @@
 // Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
+#include <cstring>
+#include <string>
 #include <vector>
 #include <cryptopp/hex.h>
 #include "common/bit_field.h"
+#include "common/common_types.h"
 #include "common/file_util.h"
 #include "common/logging/log.h"
 #include "common/scm_rev.h"
 #include "core/core.h"
+#include "core/hle/service/hid/hid.h"
+#include "core/hle/service/ir/ir_rst.h"
 #include "core/movie.h"
 
 namespace Movie {
 
-enum class PlayMode { None = 0, Recording, Playing };
+enum class PlayMode { None, Recording, Playing };
 
 enum class ControllerStateType : u8 { PadAndCircle, Touch, Accelerometer, Gyroscope, CStick };
 
@@ -47,25 +52,25 @@ struct ControllerState {
                 BitField<16, 8, u32> circle_pad_x;
                 BitField<24, 8, u32> circle_pad_y;
             };
-        } PadAndCircle;
+        } pad_and_circle;
 
         struct {
             u16 x;
             u16 y;
-            bool valid;
-        } Touch;
+            u8 valid;
+        } touch;
 
         struct {
             s16 x;
             s16 y;
             s16 z;
-        } Accelerometer;
+        } accelerometer;
 
         struct {
             s16 x;
             s16 y;
             s16 z;
-        } Gyroscope;
+        } gyroscope;
 
         struct {
             // MAX_CSTICK_RADIUS in ir_rst.cpp fits in one byte
@@ -73,7 +78,7 @@ struct ControllerState {
             u8 y;
             bool zl;
             bool zr;
-        } CStick;
+        } c_stick;
     };
 };
 static_assert(sizeof(ControllerState) == 7, "ControllerState should be 7 bytes");
@@ -90,25 +95,25 @@ struct CTMHeader {
 static_assert(sizeof(CTMHeader) == 256, "CTMHeader should be 256 bytes");
 #pragma pack(pop)
 
-PlayMode play_mode = PlayMode::None;
-std::vector<u8> temp_input;
-int current_byte = 0;
+static PlayMode play_mode = PlayMode::None;
+static std::vector<u8> temp_input;
+static size_t current_byte = 0;
 
-bool IsPlayingInput() {
+static bool IsPlayingInput() {
     return play_mode == PlayMode::Playing;
 }
-bool IsRecordingInput() {
+static bool IsRecordingInput() {
     return play_mode == PlayMode::Recording;
 }
 
-void CheckInputEnd() {
+static void CheckInputEnd() {
     if (current_byte + sizeof(ControllerState) > temp_input.size()) {
         LOG_INFO(Movie, "Playback finished");
         play_mode = PlayMode::None;
     }
 }
 
-void Play(Service::HID::PadState& pad_state, s16& circle_pad_x, s16& circle_pad_y) {
+static void Play(Service::HID::PadState& pad_state, s16& circle_pad_x, s16& circle_pad_y) {
     ControllerState s;
     memcpy(&s, &temp_input[current_byte], sizeof(ControllerState));
     current_byte += sizeof(ControllerState);
@@ -120,28 +125,28 @@ void Play(Service::HID::PadState& pad_state, s16& circle_pad_x, s16& circle_pad_
         return;
     }
 
-    pad_state.a.Assign(s.PadAndCircle.a);
-    pad_state.b.Assign(s.PadAndCircle.b);
-    pad_state.select.Assign(s.PadAndCircle.select);
-    pad_state.start.Assign(s.PadAndCircle.start);
-    pad_state.right.Assign(s.PadAndCircle.right);
-    pad_state.left.Assign(s.PadAndCircle.left);
-    pad_state.up.Assign(s.PadAndCircle.up);
-    pad_state.down.Assign(s.PadAndCircle.down);
-    pad_state.r.Assign(s.PadAndCircle.r);
-    pad_state.l.Assign(s.PadAndCircle.l);
-    pad_state.x.Assign(s.PadAndCircle.x);
-    pad_state.y.Assign(s.PadAndCircle.y);
-    pad_state.circle_right.Assign(s.PadAndCircle.circle_right);
-    pad_state.circle_left.Assign(s.PadAndCircle.circle_left);
-    pad_state.circle_up.Assign(s.PadAndCircle.circle_up);
-    pad_state.circle_down.Assign(s.PadAndCircle.circle_down);
+    pad_state.a.Assign(s.pad_and_circle.a);
+    pad_state.b.Assign(s.pad_and_circle.b);
+    pad_state.select.Assign(s.pad_and_circle.select);
+    pad_state.start.Assign(s.pad_and_circle.start);
+    pad_state.right.Assign(s.pad_and_circle.right);
+    pad_state.left.Assign(s.pad_and_circle.left);
+    pad_state.up.Assign(s.pad_and_circle.up);
+    pad_state.down.Assign(s.pad_and_circle.down);
+    pad_state.r.Assign(s.pad_and_circle.r);
+    pad_state.l.Assign(s.pad_and_circle.l);
+    pad_state.x.Assign(s.pad_and_circle.x);
+    pad_state.y.Assign(s.pad_and_circle.y);
+    pad_state.circle_right.Assign(s.pad_and_circle.circle_right);
+    pad_state.circle_left.Assign(s.pad_and_circle.circle_left);
+    pad_state.circle_up.Assign(s.pad_and_circle.circle_up);
+    pad_state.circle_down.Assign(s.pad_and_circle.circle_down);
 
-    circle_pad_x = static_cast<s16>(s.PadAndCircle.circle_pad_x);
-    circle_pad_y = static_cast<s16>(s.PadAndCircle.circle_pad_y);
+    circle_pad_x = static_cast<s16>(s.pad_and_circle.circle_pad_x);
+    circle_pad_y = static_cast<s16>(s.pad_and_circle.circle_pad_y);
 }
 
-void Play(Service::HID::TouchDataEntry& touch_data) {
+static void Play(Service::HID::TouchDataEntry& touch_data) {
     ControllerState s;
     memcpy(&s, &temp_input[current_byte], sizeof(ControllerState));
     current_byte += sizeof(ControllerState);
@@ -153,12 +158,12 @@ void Play(Service::HID::TouchDataEntry& touch_data) {
         return;
     }
 
-    touch_data.x = s.Touch.x;
-    touch_data.y = s.Touch.y;
-    touch_data.valid.Assign(s.Touch.valid);
+    touch_data.x = s.touch.x;
+    touch_data.y = s.touch.y;
+    touch_data.valid.Assign(s.touch.valid);
 }
 
-void Play(Service::HID::AccelerometerDataEntry& accelerometer_data) {
+static void Play(Service::HID::AccelerometerDataEntry& accelerometer_data) {
     ControllerState s;
     memcpy(&s, &temp_input[current_byte], sizeof(ControllerState));
     current_byte += sizeof(ControllerState);
@@ -170,12 +175,12 @@ void Play(Service::HID::AccelerometerDataEntry& accelerometer_data) {
         return;
     }
 
-    accelerometer_data.x = s.Accelerometer.x;
-    accelerometer_data.y = s.Accelerometer.y;
-    accelerometer_data.z = s.Accelerometer.z;
+    accelerometer_data.x = s.accelerometer.x;
+    accelerometer_data.y = s.accelerometer.y;
+    accelerometer_data.z = s.accelerometer.z;
 }
 
-void Play(Service::HID::GyroscopeDataEntry& gyroscope_data) {
+static void Play(Service::HID::GyroscopeDataEntry& gyroscope_data) {
     ControllerState s;
     memcpy(&s, &temp_input[current_byte], sizeof(ControllerState));
     current_byte += sizeof(ControllerState);
@@ -187,12 +192,12 @@ void Play(Service::HID::GyroscopeDataEntry& gyroscope_data) {
         return;
     }
 
-    gyroscope_data.x = s.Gyroscope.x;
-    gyroscope_data.y = s.Gyroscope.y;
-    gyroscope_data.z = s.Gyroscope.z;
+    gyroscope_data.x = s.gyroscope.x;
+    gyroscope_data.y = s.gyroscope.y;
+    gyroscope_data.z = s.gyroscope.z;
 }
 
-void Play(Service::IR::PadState& pad_state, s16& c_stick_x, s16& c_stick_y) {
+static void Play(Service::IR::PadState& pad_state, s16& c_stick_x, s16& c_stick_y) {
     ControllerState s;
     memcpy(&s, &temp_input[current_byte], sizeof(ControllerState));
     current_byte += sizeof(ControllerState);
@@ -204,96 +209,96 @@ void Play(Service::IR::PadState& pad_state, s16& c_stick_x, s16& c_stick_y) {
         return;
     }
 
-    c_stick_x = s.CStick.x;
-    c_stick_y = s.CStick.y;
-    pad_state.zl.Assign(s.CStick.zl);
-    pad_state.zr.Assign(s.CStick.zr);
+    c_stick_x = s.c_stick.x;
+    c_stick_y = s.c_stick.y;
+    pad_state.zl.Assign(s.c_stick.zl);
+    pad_state.zr.Assign(s.c_stick.zr);
 }
 
-void Record(const Service::HID::PadState& pad_state, const s16& circle_pad_x,
+static void Record(const Service::HID::PadState& pad_state, const s16& circle_pad_x,
             const s16& circle_pad_y) {
     ControllerState s;
     s.type = ControllerStateType::PadAndCircle;
 
-    s.PadAndCircle.a.Assign(pad_state.a);
-    s.PadAndCircle.b.Assign(pad_state.b);
-    s.PadAndCircle.select.Assign(pad_state.select);
-    s.PadAndCircle.start.Assign(pad_state.start);
-    s.PadAndCircle.right.Assign(pad_state.right);
-    s.PadAndCircle.left.Assign(pad_state.left);
-    s.PadAndCircle.up.Assign(pad_state.up);
-    s.PadAndCircle.down.Assign(pad_state.down);
-    s.PadAndCircle.r.Assign(pad_state.r);
-    s.PadAndCircle.l.Assign(pad_state.l);
-    s.PadAndCircle.x.Assign(pad_state.x);
-    s.PadAndCircle.y.Assign(pad_state.y);
-    s.PadAndCircle.circle_right.Assign(pad_state.circle_right);
-    s.PadAndCircle.circle_left.Assign(pad_state.circle_left);
-    s.PadAndCircle.circle_up.Assign(pad_state.circle_up);
-    s.PadAndCircle.circle_down.Assign(pad_state.circle_down);
+    s.pad_and_circle.a.Assign(pad_state.a);
+    s.pad_and_circle.b.Assign(pad_state.b);
+    s.pad_and_circle.select.Assign(pad_state.select);
+    s.pad_and_circle.start.Assign(pad_state.start);
+    s.pad_and_circle.right.Assign(pad_state.right);
+    s.pad_and_circle.left.Assign(pad_state.left);
+    s.pad_and_circle.up.Assign(pad_state.up);
+    s.pad_and_circle.down.Assign(pad_state.down);
+    s.pad_and_circle.r.Assign(pad_state.r);
+    s.pad_and_circle.l.Assign(pad_state.l);
+    s.pad_and_circle.x.Assign(pad_state.x);
+    s.pad_and_circle.y.Assign(pad_state.y);
+    s.pad_and_circle.circle_right.Assign(pad_state.circle_right);
+    s.pad_and_circle.circle_left.Assign(pad_state.circle_left);
+    s.pad_and_circle.circle_up.Assign(pad_state.circle_up);
+    s.pad_and_circle.circle_down.Assign(pad_state.circle_down);
 
-    s.PadAndCircle.circle_pad_x.Assign(circle_pad_x);
-    s.PadAndCircle.circle_pad_y.Assign(circle_pad_y);
+    s.pad_and_circle.circle_pad_x.Assign(circle_pad_x);
+    s.pad_and_circle.circle_pad_y.Assign(circle_pad_y);
 
     temp_input.resize(current_byte + sizeof(ControllerState));
     memcpy(&temp_input[current_byte], &s, sizeof(ControllerState));
     current_byte += sizeof(ControllerState);
 }
 
-void Record(const Service::HID::TouchDataEntry& touch_data) {
+static void Record(const Service::HID::TouchDataEntry& touch_data) {
     ControllerState s;
     s.type = ControllerStateType::Touch;
 
-    s.Touch.x = touch_data.x;
-    s.Touch.y = touch_data.y;
-    s.Touch.valid = touch_data.valid;
+    s.touch.x = touch_data.x;
+    s.touch.y = touch_data.y;
+    s.touch.valid = static_cast<u8>(touch_data.valid);
 
     temp_input.resize(current_byte + sizeof(ControllerState));
     memcpy(&temp_input[current_byte], &s, sizeof(ControllerState));
     current_byte += sizeof(ControllerState);
 }
 
-void Record(const Service::HID::AccelerometerDataEntry& accelerometer_data) {
+static void Record(const Service::HID::AccelerometerDataEntry& accelerometer_data) {
     ControllerState s;
     s.type = ControllerStateType::Accelerometer;
 
-    s.Accelerometer.x = accelerometer_data.x;
-    s.Accelerometer.y = accelerometer_data.y;
-    s.Accelerometer.z = accelerometer_data.z;
+    s.accelerometer.x = accelerometer_data.x;
+    s.accelerometer.y = accelerometer_data.y;
+    s.accelerometer.z = accelerometer_data.z;
 
     temp_input.resize(current_byte + sizeof(ControllerState));
     memcpy(&temp_input[current_byte], &s, sizeof(ControllerState));
     current_byte += sizeof(ControllerState);
 }
 
-void Record(const Service::HID::GyroscopeDataEntry& gyroscope_data) {
+static void Record(const Service::HID::GyroscopeDataEntry& gyroscope_data) {
     ControllerState s;
     s.type = ControllerStateType::Gyroscope;
 
-    s.Gyroscope.x = gyroscope_data.x;
-    s.Gyroscope.y = gyroscope_data.y;
-    s.Gyroscope.z = gyroscope_data.z;
+    s.gyroscope.x = gyroscope_data.x;
+    s.gyroscope.y = gyroscope_data.y;
+    s.gyroscope.z = gyroscope_data.z;
 
     temp_input.resize(current_byte + sizeof(ControllerState));
     memcpy(&temp_input[current_byte], &s, sizeof(ControllerState));
     current_byte += sizeof(ControllerState);
 }
 
-void Record(const Service::IR::PadState& pad_state, const s16& c_stick_x, const s16& c_stick_y) {
+static void Record(const Service::IR::PadState& pad_state, const s16& c_stick_x, const s16& c_stick_y) {
     ControllerState s;
     s.type = ControllerStateType::CStick;
 
-    s.CStick.x = static_cast<u8>(c_stick_x);
-    s.CStick.y = static_cast<u8>(c_stick_y);
-    s.CStick.zl = pad_state.zl;
-    s.CStick.zr = pad_state.zr;
+    s.c_stick.x = static_cast<u8>(c_stick_x);
+    s.c_stick.y = static_cast<u8>(c_stick_y);
+    s.c_stick.zl = pad_state.zl;
+    s.c_stick.zr = pad_state.zr;
 
     temp_input.resize(current_byte + sizeof(ControllerState));
     memcpy(&temp_input[current_byte], &s, sizeof(ControllerState));
     current_byte += sizeof(ControllerState);
 }
 
-bool ValidateHeader(const CTMHeader& header) {
+static bool ValidateHeader(const CTMHeader& header) {
     if (header.filetype[0] != 'C' || header.filetype[1] != 'T' || header.filetype[2] != 'M' ||
         header.filetype[3] != 0x1B) {
         LOG_ERROR(Movie, "Playback file does not have valid header");
@@ -321,7 +326,7 @@ void Init() {
     if (!Settings::values.movie_play.empty()) {
         LOG_INFO(Movie, "Loading Movie for playback");
         FileUtil::IOFile save_record(Settings::values.movie_play, "rb");
-        u64 size = {save_record.GetSize()};
+        u64 size = save_record.GetSize();
         save_record.Seek(0, SEEK_SET);
 
         if (save_record.IsGood() && size > sizeof(CTMHeader)) {
@@ -346,30 +351,31 @@ void Init() {
 }
 
 void Shutdown() {
-    if (play_mode == PlayMode::Recording) {
-        LOG_INFO(Movie, "Saving movie");
-        FileUtil::IOFile save_record(Settings::values.movie_record, "wb");
+    if (!IsRecordingInput()) {
+        return;
+    }
 
-        CTMHeader header;
-        memset(&header, 0, sizeof(CTMHeader));
+    LOG_INFO(Movie, "Saving movie");
+    FileUtil::IOFile save_record(Settings::values.movie_record, "wb");
 
-        header.filetype[0] = 'C';
-        header.filetype[1] = 'T';
-        header.filetype[2] = 'M';
-        header.filetype[3] = 0x1B;
+    CTMHeader header = {};
 
-        Core::System::GetInstance().GetAppLoader().ReadProgramId(header.program_id);
+    header.filetype[0] = 'C';
+    header.filetype[1] = 'T';
+    header.filetype[2] = 'M';
+    header.filetype[3] = 0x1B;
 
-        std::string rev_bytes;
-        CryptoPP::StringSource(Common::g_scm_rev, true,
-                               new CryptoPP::HexDecoder(new CryptoPP::StringSink(rev_bytes)));
-        memcpy(header.revision, rev_bytes.data(), 20);
+    Core::System::GetInstance().GetAppLoader().ReadProgramId(header.program_id);
 
-        save_record.WriteBytes(&header, sizeof(CTMHeader));
-        save_record.WriteBytes(temp_input.data(), temp_input.size());
-        if (!save_record.IsGood()) {
-            LOG_ERROR(Movie, "Error saving movie");
-        }
+    std::string rev_bytes;
+    CryptoPP::StringSource(Common::g_scm_rev, true,
+                            new CryptoPP::HexDecoder(new CryptoPP::StringSink(rev_bytes)));
+    std::memcpy(header.revision, rev_bytes.data(), sizeof(CTMHeader::revision));
+
+    save_record.WriteBytes(&header, sizeof(CTMHeader));
+    save_record.WriteBytes(temp_input.data(), temp_input.size());
+    if (!save_record.IsGood()) {
+        LOG_ERROR(Movie, "Error saving movie");
     }
 }
 

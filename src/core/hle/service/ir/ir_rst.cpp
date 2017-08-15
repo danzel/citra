@@ -3,7 +3,6 @@
 // Refer to the license.txt file included.
 
 #include <atomic>
-#include "common/bit_field.h"
 #include "core/core_timing.h"
 #include "core/frontend/input.h"
 #include "core/hle/ipc_helpers.h"
