@@ -80,11 +80,10 @@ static_assert(sizeof(ControllerState) == 7, "ControllerState should be 7 bytes")
 #pragma pack(pop)
 
 #pragma pack(push, 1)
-struct CTMHeader
-{
-    u8 filetype[4];   // Unique Identifier (always "CTM"0x1B)
-    u64 program_id;   // Also called title_id
-    u8 revision[20];  // Git hash
+struct CTMHeader {
+    u8 filetype[4];  // Unique Identifier (always "CTM"0x1B)
+    u64 program_id;  // Also called title_id
+    u8 revision[20]; // Git hash
 
     u8 reserved[224]; // Make heading 256 bytes, just because we can
 };
@@ -295,15 +294,18 @@ void Record(const Service::IR::PadState& pad_state, const s16& c_stick_x, const 
 }
 
 bool ValidateHeader(const CTMHeader& header) {
-    if (header.filetype[0] != 'C' || header.filetype[1] != 'T' || header.filetype[2] != 'M' || header.filetype[3] != 0x1B) {
-        LOG_ERROR(Movie, "Playback file does not have valid header %x %x %x %x", header.filetype[0], header.filetype[1], header.filetype[2], header.filetype[3]);
+    if (header.filetype[0] != 'C' || header.filetype[1] != 'T' || header.filetype[2] != 'M' ||
+        header.filetype[3] != 0x1B) {
+        LOG_ERROR(Movie, "Playback file does not have valid header");
         return false;
     }
 
     std::string revision;
-    CryptoPP::StringSource ss(header.revision, sizeof(header.revision), true, new CryptoPP::HexEncoder(new CryptoPP::StringSink(revision)));
+    CryptoPP::StringSource ss(header.revision, sizeof(header.revision), true,
+                              new CryptoPP::HexEncoder(new CryptoPP::StringSink(revision)));
     if (revision != Common::g_scm_rev) {
-        LOG_WARNING(Movie, "This movie was created on a different version of Citra, playback may desync");
+        LOG_WARNING(Movie,
+                    "This movie was created on a different version of Citra, playback may desync");
     }
 
     u64 program_id;
@@ -360,7 +362,7 @@ void Shutdown() {
 
         std::string rev_bytes;
         CryptoPP::StringSource(Common::g_scm_rev, true,
-            new CryptoPP::HexDecoder(new CryptoPP::StringSink(rev_bytes)));
+                               new CryptoPP::HexDecoder(new CryptoPP::StringSink(rev_bytes)));
         memcpy(header.revision, rev_bytes.data(), 20);
 
         save_record.WriteBytes(&header, sizeof(CTMHeader));
