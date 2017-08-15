@@ -13,7 +13,8 @@ void Init();
 
 void Shutdown();
 
-void HandlePadAndCircleStatus(Service::HID::PadState& pad_state, s16& circle_pad_x, s16& circle_pad_y);
+void HandlePadAndCircleStatus(Service::HID::PadState& pad_state, s16& circle_pad_x,
+                              s16& circle_pad_y);
 
 void HandleTouchStatus(Service::HID::TouchDataEntry& touch_data);
 

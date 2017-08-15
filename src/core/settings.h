@@ -127,7 +127,7 @@ struct Values {
     bool use_gdbstub;
     u16 gdbstub_port;
 
-    //Movie
+    // Movie
     std::string movie_play;
     std::string movie_record;
 
