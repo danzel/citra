@@ -430,60 +430,41 @@ void Shutdown() {
     }
 }
 
-void HandlePadAndCircleStatus(Service::HID::PadState& pad_state, s16& circle_pad_x,
-                              s16& circle_pad_y) {
+template<typename... Targs>
+static void Handle(Targs&... Fargs)
+{
     if (IsPlayingInput()) {
-        Play(pad_state, circle_pad_x, circle_pad_y);
-        CheckInputEnd();
-    } else if (IsRecordingInput()) {
-        Record(pad_state, circle_pad_x, circle_pad_y);
-    }
-}
-
-void HandleTouchStatus(Service::HID::TouchDataEntry& touch_data) {
-    if (IsPlayingInput()) {
-        Play(touch_data);
-        CheckInputEnd();
-    } else if (IsRecordingInput()) {
-        Record(touch_data);
-    }
-}
-
-void HandleAccelerometerStatus(Service::HID::AccelerometerDataEntry& accelerometer_data) {
-    if (IsPlayingInput()) {
-        Play(accelerometer_data);
-        CheckInputEnd();
-    } else if (IsRecordingInput()) {
-        Record(accelerometer_data);
-    }
-}
-
-void HandleGyroscopeStatus(Service::HID::GyroscopeDataEntry& gyroscope_data) {
-    if (IsPlayingInput()) {
-        Play(gyroscope_data);
-        CheckInputEnd();
-    } else if (IsRecordingInput()) {
-        Record(gyroscope_data);
-    }
-}
-
-void HandleCStick(Service::IR::PadState& pad_state, s16& c_stick_x, s16& c_stick_y) {
-    if (IsPlayingInput()) {
-        Play(pad_state, c_stick_x, c_stick_y);
-        CheckInputEnd();
-    } else if (IsRecordingInput()) {
-        Record(pad_state, c_stick_x, c_stick_y);
-    }
-}
-
-void HandleCirclePad(Service::IR::CirclePadResponse& circle_pad) {
-    if (IsPlayingInput()) {
-        Play(circle_pad);
+        Play(Fargs...);
         CheckInputEnd();
     }
     else if (IsRecordingInput()) {
-        Record(circle_pad);
+        Record(Fargs...);
     }
+}
+
+void HandlePadAndCircleStatus(Service::HID::PadState& pad_state, s16& circle_pad_x,
+                              s16& circle_pad_y) {
+    Handle(pad_state, circle_pad_x, circle_pad_y);
+}
+
+void HandleTouchStatus(Service::HID::TouchDataEntry& touch_data) {
+    Handle(touch_data);
+}
+
+void HandleAccelerometerStatus(Service::HID::AccelerometerDataEntry& accelerometer_data) {
+    Handle(accelerometer_data);
+}
+
+void HandleGyroscopeStatus(Service::HID::GyroscopeDataEntry& gyroscope_data) {
+    Handle(gyroscope_data);
+}
+
+void HandleCStick(Service::IR::PadState& pad_state, s16& c_stick_x, s16& c_stick_y) {
+    Handle(pad_state, c_stick_x, c_stick_y);
+}
+
+void HandleCirclePad(Service::IR::CirclePadResponse& circle_pad) {
+    Handle(circle_pad);
 }
 
 }
