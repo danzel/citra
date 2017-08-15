@@ -210,13 +210,6 @@ void Record(const Service::HID::PadState& pad_state, const s16& circle_pad_x, co
     temp_input.resize(current_byte + sizeof(ControllerState));
     memcpy(&temp_input[current_byte], &s, sizeof(ControllerState));
     current_byte += sizeof(ControllerState);
-
-    // TODO: Unhack this, will need a way to trigger it to save (on quit?)
-    if (pad_state.b) {
-        FileUtil::IOFile save_record("movie.bin", "wb");
-
-        save_record.WriteBytes(temp_input.data(), temp_input.size());
-    }
 }
 
 void Record(const Service::HID::TouchDataEntry &touch_data) {
@@ -272,17 +265,39 @@ void Record(const Service::IR::PadState& pad_state, const s16& c_stick_x, const 
     current_byte += sizeof(ControllerState);
 }
 
-void HandlePadAndCircleStatus(Service::HID::PadState& pad_state, s16& circle_pad_x, s16& circle_pad_y) {
-
-    // TODO: Unhack this, will need a way to specify to load a movie (also movie will have a header)
-    if (IsPlayingInput() && temp_input.empty()) {
-        printf("LOADING\r\n");
-        FileUtil::IOFile save_record("movie.bin", "rb");
-        temp_input.resize(save_record.GetSize());
-        save_record.ReadArray(temp_input.data(), temp_input.size());
-        current_byte = 0;
+void Init() {
+    if (!Settings::values.movie_play.empty()) {
+        LOG_INFO(Movie, "Loading Movie for playback");
+        FileUtil::IOFile save_record(Settings::values.movie_play, "rb");
+        if (save_record.IsGood()) {
+            play_mode = PlayMode::Playing;
+            temp_input.resize(save_record.GetSize());
+            save_record.ReadArray(temp_input.data(), temp_input.size());
+            current_byte = 0;
+        } else {
+            LOG_ERROR(Movie, "Failed to playback movie: Unable to open '%'", Settings::values.movie_play.c_str());
+        }
     }
 
+    if (!Settings::values.movie_record.empty()) {
+        LOG_INFO(Movie, "Enabling Movie recording");
+        play_mode = PlayMode::Recording;
+    }
+}
+
+void Shutdown() {
+    if (play_mode == PlayMode::Recording) {
+        LOG_INFO(Movie, "Saving movie");
+        FileUtil::IOFile save_record(Settings::values.movie_record, "wb");
+
+        save_record.WriteBytes(temp_input.data(), temp_input.size());
+        if (!save_record.IsGood()) {
+            LOG_ERROR(Movie, "Error saving movie");
+        }
+    }
+}
+
+void HandlePadAndCircleStatus(Service::HID::PadState& pad_state, s16& circle_pad_x, s16& circle_pad_y) {
     if (IsPlayingInput()) {
         Play(pad_state, circle_pad_x, circle_pad_y);
         CheckInputEnd();
@@ -304,8 +319,7 @@ void HandleAccelerometerStatus(Service::HID::AccelerometerDataEntry& acceleromet
     if (IsPlayingInput()) {
         Play(accelerometer_data);
         CheckInputEnd();
-    }
-    else if (IsRecordingInput()) {
+    } else if (IsRecordingInput()) {
         Record(accelerometer_data);
     }
 }
@@ -314,8 +328,7 @@ void HandleGyroscopeStatus(Service::HID::GyroscopeDataEntry& gyroscope_data) {
     if (IsPlayingInput()) {
         Play(gyroscope_data);
         CheckInputEnd();
-    }
-    else if (IsRecordingInput()) {
+    } else if (IsRecordingInput()) {
         Record(gyroscope_data);
     }
 }
@@ -324,8 +337,7 @@ void HandleCStick(Service::IR::PadState& pad_state, s16& c_stick_x, s16& c_stick
     if (IsPlayingInput()) {
         Play(pad_state, c_stick_x, c_stick_y);
         CheckInputEnd();
-    }
-    else if (IsRecordingInput()) {
+    } else if (IsRecordingInput()) {
         Record(pad_state, c_stick_x, c_stick_y);
     }
 }
