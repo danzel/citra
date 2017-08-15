@@ -3,9 +3,12 @@
 // Refer to the license.txt file included.
 
 #include <vector>
+#include <cryptopp/hex.h>
 #include "common/bit_field.h"
 #include "common/file_util.h"
 #include "common/logging/log.h"
+#include "common/scm_rev.h"
+#include "core/core.h"
 #include "core/movie.h"
 
 namespace Movie {
@@ -74,6 +77,19 @@ struct ControllerState {
     };
 };
 static_assert(sizeof(ControllerState) == 7, "ControllerState should be 7 bytes");
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+struct CTMHeader
+{
+    u8 filetype[4];   // Unique Identifier (always "CTM"0x1B)
+    u64 program_id;   // Also called title_id
+    u8 revision[20];  // Git hash
+
+    u8 reserved[224]; // Make heading 256 bytes, just because we can
+};
+static_assert(sizeof(CTMHeader) == 256, "CTMHeader should be 256 bytes");
+#pragma pack(pop)
 
 PlayMode play_mode = PlayMode::None;
 std::vector<u8> temp_input;
@@ -122,8 +138,8 @@ void Play(Service::HID::PadState& pad_state, s16& circle_pad_x, s16& circle_pad_
     pad_state.circle_up.Assign(s.PadAndCircle.circle_up);
     pad_state.circle_down.Assign(s.PadAndCircle.circle_down);
 
-    circle_pad_x = s.PadAndCircle.circle_pad_x;
-    circle_pad_y = s.PadAndCircle.circle_pad_y;
+    circle_pad_x = static_cast<s16>(s.PadAndCircle.circle_pad_x);
+    circle_pad_y = static_cast<s16>(s.PadAndCircle.circle_pad_y);
 }
 
 void Play(Service::HID::TouchDataEntry& touch_data) {
@@ -278,15 +294,43 @@ void Record(const Service::IR::PadState& pad_state, const s16& c_stick_x, const 
     current_byte += sizeof(ControllerState);
 }
 
+bool ValidateHeader(const CTMHeader& header) {
+    if (header.filetype[0] != 'C' || header.filetype[1] != 'T' || header.filetype[2] != 'M' || header.filetype[3] != 0x1B) {
+        LOG_ERROR(Movie, "Playback file does not have valid header %x %x %x %x", header.filetype[0], header.filetype[1], header.filetype[2], header.filetype[3]);
+        return false;
+    }
+
+    std::string revision;
+    CryptoPP::StringSource ss(header.revision, sizeof(header.revision), true, new CryptoPP::HexEncoder(new CryptoPP::StringSink(revision)));
+    if (revision != Common::g_scm_rev) {
+        LOG_WARNING(Movie, "This movie was created on a different version of Citra, playback may desync");
+    }
+
+    u64 program_id;
+    Core::System::GetInstance().GetAppLoader().ReadProgramId(program_id);
+    if (program_id != header.program_id) {
+        LOG_WARNING(Movie, "This movie was recorded using a ROM with a different program id");
+    }
+
+    return true;
+}
+
 void Init() {
     if (!Settings::values.movie_play.empty()) {
         LOG_INFO(Movie, "Loading Movie for playback");
         FileUtil::IOFile save_record(Settings::values.movie_play, "rb");
-        if (save_record.IsGood()) {
-            play_mode = PlayMode::Playing;
-            temp_input.resize(save_record.GetSize());
-            save_record.ReadArray(temp_input.data(), temp_input.size());
-            current_byte = 0;
+        u64 size = {save_record.GetSize()};
+        save_record.Seek(0, SEEK_SET);
+
+        if (save_record.IsGood() && size > sizeof(CTMHeader)) {
+            CTMHeader header;
+            save_record.ReadArray(&header, 1);
+            if (ValidateHeader(header)) {
+                play_mode = PlayMode::Playing;
+                temp_input.resize(size - sizeof(CTMHeader));
+                save_record.ReadArray(temp_input.data(), temp_input.size());
+                current_byte = 0;
+            }
         } else {
             LOG_ERROR(Movie, "Failed to playback movie: Unable to open '%s'",
                       Settings::values.movie_play.c_str());
@@ -304,6 +348,22 @@ void Shutdown() {
         LOG_INFO(Movie, "Saving movie");
         FileUtil::IOFile save_record(Settings::values.movie_record, "wb");
 
+        CTMHeader header;
+        memset(&header, 0, sizeof(CTMHeader));
+
+        header.filetype[0] = 'C';
+        header.filetype[1] = 'T';
+        header.filetype[2] = 'M';
+        header.filetype[3] = 0x1B;
+
+        Core::System::GetInstance().GetAppLoader().ReadProgramId(header.program_id);
+
+        std::string rev_bytes;
+        CryptoPP::StringSource(Common::g_scm_rev, true,
+            new CryptoPP::HexDecoder(new CryptoPP::StringSink(rev_bytes)));
+        memcpy(header.revision, rev_bytes.data(), 20);
+
+        save_record.WriteBytes(&header, sizeof(CTMHeader));
         save_record.WriteBytes(temp_input.data(), temp_input.size());
         if (!save_record.IsGood()) {
             LOG_ERROR(Movie, "Error saving movie");
