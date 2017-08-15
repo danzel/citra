@@ -14,6 +14,7 @@ struct PadState;
 struct TouchDataEntry;
 }
 namespace IR {
+struct CirclePadResponse;
 union PadState;
 }
 }
@@ -34,6 +35,8 @@ void HandleAccelerometerStatus(Service::HID::AccelerometerDataEntry& acceleromet
 void HandleGyroscopeStatus(Service::HID::GyroscopeDataEntry& gyroscope_data);
 
 void HandleCStick(Service::IR::PadState& pad_state, s16& c_stick_x, s16& c_stick_y);
+
+void HandleCirclePad(Service::IR::CirclePadResponse& circle_pad);
 
 // TODO: Handle C-Stick
 }

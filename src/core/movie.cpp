@@ -13,6 +13,7 @@
 #include "common/scm_rev.h"
 #include "core/core.h"
 #include "core/hle/service/hid/hid.h"
+#include "core/hle/service/ir/extra_hid.h"
 #include "core/hle/service/ir/ir_rst.h"
 #include "core/movie.h"
 
@@ -20,7 +21,8 @@ namespace Movie {
 
 enum class PlayMode { None, Recording, Playing };
 
-enum class ControllerStateType : u8 { PadAndCircle, Touch, Accelerometer, Gyroscope, CStick };
+enum class ControllerStateType : u8 { PadAndCircle, Touch, Accelerometer, Gyroscope, CStick,
+                                      CirclePad };
 
 #pragma pack(push, 1)
 struct ControllerState {
@@ -79,6 +81,19 @@ struct ControllerState {
             bool zl;
             bool zr;
         } c_stick;
+
+        struct {
+            union {
+                u32 hex;
+
+                BitField<0, 5, u8> battery_level;
+                BitField<5, 1, u8> zl_not_held;
+                BitField<6, 1, u8> zr_not_held;
+                BitField<7, 1, u8> r_not_held;
+                BitField<8, 12, u32_le> c_stick_x;
+                BitField<20, 12, u32_le> c_stick_y;
+            };
+        } circle_pad;
     };
 };
 static_assert(sizeof(ControllerState) == 7, "ControllerState should be 7 bytes");
@@ -215,6 +230,26 @@ static void Play(Service::IR::PadState& pad_state, s16& c_stick_x, s16& c_stick_
     pad_state.zr.Assign(s.c_stick.zr);
 }
 
+static void Play(Service::IR::CirclePadResponse& circle_pad) {
+    ControllerState s;
+    memcpy(&s, &temp_input[current_byte], sizeof(ControllerState));
+    current_byte += sizeof(ControllerState);
+
+    if (s.type != ControllerStateType::CirclePad) {
+        LOG_ERROR(Movie,
+            "Expected to read type %d, but found %d. Your playback will be out of sync",
+            ControllerStateType::CirclePad, s.type);
+        return;
+    }
+
+    circle_pad.buttons.battery_level.Assign(s.circle_pad.battery_level);
+    circle_pad.c_stick.c_stick_x.Assign(s.circle_pad.c_stick_x);
+    circle_pad.c_stick.c_stick_y.Assign(s.circle_pad.c_stick_y);
+    circle_pad.buttons.r_not_held.Assign(s.circle_pad.r_not_held);
+    circle_pad.buttons.zl_not_held.Assign(s.circle_pad.zl_not_held);
+    circle_pad.buttons.zr_not_held.Assign(s.circle_pad.zr_not_held);
+}
+
 static void Record(const Service::HID::PadState& pad_state, const s16& circle_pad_x,
             const s16& circle_pad_y) {
     ControllerState s;
@@ -292,6 +327,22 @@ static void Record(const Service::IR::PadState& pad_state, const s16& c_stick_x,
     s.c_stick.y = static_cast<u8>(c_stick_y);
     s.c_stick.zl = pad_state.zl;
     s.c_stick.zr = pad_state.zr;
+
+    temp_input.resize(current_byte + sizeof(ControllerState));
+    memcpy(&temp_input[current_byte], &s, sizeof(ControllerState));
+    current_byte += sizeof(ControllerState);
+}
+
+static void Record(const Service::IR::CirclePadResponse& circle_pad) {
+    ControllerState s;
+    s.type = ControllerStateType::CirclePad;
+
+    s.circle_pad.battery_level.Assign(circle_pad.buttons.battery_level);
+    s.circle_pad.c_stick_x.Assign(circle_pad.c_stick.c_stick_x);
+    s.circle_pad.c_stick_y.Assign(circle_pad.c_stick.c_stick_y);
+    s.circle_pad.r_not_held.Assign(circle_pad.buttons.r_not_held);
+    s.circle_pad.zl_not_held.Assign(circle_pad.buttons.zl_not_held);
+    s.circle_pad.zr_not_held.Assign(circle_pad.buttons.zr_not_held);
 
     temp_input.resize(current_byte + sizeof(ControllerState));
     memcpy(&temp_input[current_byte], &s, sizeof(ControllerState));
@@ -424,4 +475,15 @@ void HandleCStick(Service::IR::PadState& pad_state, s16& c_stick_x, s16& c_stick
         Record(pad_state, c_stick_x, c_stick_y);
     }
 }
+
+void HandleCirclePad(Service::IR::CirclePadResponse& circle_pad) {
+    if (IsPlayingInput()) {
+        Play(circle_pad);
+        CheckInputEnd();
+    }
+    else if (IsRecordingInput()) {
+        Record(circle_pad);
+    }
+}
+
 }
