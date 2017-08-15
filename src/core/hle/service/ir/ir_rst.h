@@ -9,6 +9,18 @@
 namespace Service {
 namespace IR {
 
+union PadState {
+    u32_le hex{};
+
+    BitField<14, 1, u32_le> zl;
+    BitField<15, 1, u32_le> zr;
+
+    BitField<24, 1, u32_le> c_stick_right;
+    BitField<25, 1, u32_le> c_stick_left;
+    BitField<26, 1, u32_le> c_stick_up;
+    BitField<27, 1, u32_le> c_stick_down;
+};
+
 class IR_RST_Interface : public Service::Interface {
 public:
     IR_RST_Interface();

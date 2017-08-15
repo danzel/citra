@@ -179,6 +179,7 @@ set(SRCS
             loader/smdh.cpp
             tracer/recorder.cpp
             memory.cpp
+            movie.cpp
             perf_stats.cpp
             settings.cpp
             telemetry_session.cpp
@@ -379,6 +380,7 @@ set(HEADERS
             tracer/recorder.h
             tracer/citrace.h
             memory.h
+            movie.h
             memory_setup.h
             mmio.h
             perf_stats.h
