@@ -288,8 +288,7 @@ void Init() {
             save_record.ReadArray(temp_input.data(), temp_input.size());
             current_byte = 0;
         } else {
-            LOG_ERROR(Movie,
-                      "Failed to playback movie: Unable to open '%s'",
+            LOG_ERROR(Movie, "Failed to playback movie: Unable to open '%s'",
                       Settings::values.movie_play.c_str());
         }
     }
