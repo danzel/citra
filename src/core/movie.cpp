@@ -21,8 +21,14 @@ namespace Movie {
 
 enum class PlayMode { None, Recording, Playing };
 
-enum class ControllerStateType : u8 { PadAndCircle, Touch, Accelerometer, Gyroscope, CStick,
-                                      CirclePad };
+enum class ControllerStateType : u8 {
+    PadAndCircle,
+    Touch,
+    Accelerometer,
+    Gyroscope,
+    CStick,
+    CirclePad
+};
 
 #pragma pack(push, 1)
 struct ControllerState {
@@ -237,8 +243,8 @@ static void Play(Service::IR::CirclePadResponse& circle_pad) {
 
     if (s.type != ControllerStateType::CirclePad) {
         LOG_ERROR(Movie,
-            "Expected to read type %d, but found %d. Your playback will be out of sync",
-            ControllerStateType::CirclePad, s.type);
+                  "Expected to read type %d, but found %d. Your playback will be out of sync",
+                  ControllerStateType::CirclePad, s.type);
         return;
     }
 
@@ -251,7 +257,7 @@ static void Play(Service::IR::CirclePadResponse& circle_pad) {
 }
 
 static void Record(const Service::HID::PadState& pad_state, const s16& circle_pad_x,
-            const s16& circle_pad_y) {
+                   const s16& circle_pad_y) {
     ControllerState s;
     s.type = ControllerStateType::PadAndCircle;
 
@@ -319,7 +325,8 @@ static void Record(const Service::HID::GyroscopeDataEntry& gyroscope_data) {
     current_byte += sizeof(ControllerState);
 }
 
-static void Record(const Service::IR::PadState& pad_state, const s16& c_stick_x, const s16& c_stick_y) {
+static void Record(const Service::IR::PadState& pad_state, const s16& c_stick_x,
+                   const s16& c_stick_y) {
     ControllerState s;
     s.type = ControllerStateType::CStick;
 
@@ -420,7 +427,7 @@ void Shutdown() {
 
     std::string rev_bytes;
     CryptoPP::StringSource(Common::g_scm_rev, true,
-                            new CryptoPP::HexDecoder(new CryptoPP::StringSink(rev_bytes)));
+                           new CryptoPP::HexDecoder(new CryptoPP::StringSink(rev_bytes)));
     std::memcpy(header.revision, rev_bytes.data(), sizeof(CTMHeader::revision));
 
     save_record.WriteBytes(&header, sizeof(CTMHeader));
@@ -430,14 +437,12 @@ void Shutdown() {
     }
 }
 
-template<typename... Targs>
-static void Handle(Targs&... Fargs)
-{
+template <typename... Targs>
+static void Handle(Targs&... Fargs) {
     if (IsPlayingInput()) {
         Play(Fargs...);
         CheckInputEnd();
-    }
-    else if (IsRecordingInput()) {
+    } else if (IsRecordingInput()) {
         Record(Fargs...);
     }
 }
@@ -466,5 +471,4 @@ void HandleCStick(Service::IR::PadState& pad_state, s16& c_stick_x, s16& c_stick
 void HandleCirclePad(Service::IR::CirclePadResponse& circle_pad) {
     Handle(circle_pad);
 }
-
 }
