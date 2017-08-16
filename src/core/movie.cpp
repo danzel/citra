@@ -355,6 +355,7 @@ static bool ValidateHeader(const CTMHeader& header) {
     std::string revision;
     CryptoPP::StringSource ss(header.revision, sizeof(header.revision), true,
                               new CryptoPP::HexEncoder(new CryptoPP::StringSink(revision)));
+    std::transform(revision.begin(), revision.end(), revision.begin(), ::tolower);
     if (revision != Common::g_scm_rev) {
         LOG_WARNING(Movie,
                     "This movie was created on a different version of Citra, playback may desync");
