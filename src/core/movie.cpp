@@ -11,6 +11,8 @@
 #include "common/file_util.h"
 #include "common/logging/log.h"
 #include "common/scm_rev.h"
+#include "common/string_util.h"
+#include "common/swap.h"
 #include "core/core.h"
 #include "core/hle/service/hid/hid.h"
 #include "core/hle/service/ir/extra_hid.h"
@@ -88,10 +90,10 @@ struct ControllerState {
             union {
                 u32 hex;
 
-                BitField<0, 5, u8> battery_level;
-                BitField<5, 1, u8> zl_not_held;
-                BitField<6, 1, u8> zr_not_held;
-                BitField<7, 1, u8> r_not_held;
+                BitField<0, 5, u32> battery_level;
+                BitField<5, 1, u32> zl_not_held;
+                BitField<6, 1, u32> zr_not_held;
+                BitField<7, 1, u32> r_not_held;
                 BitField<8, 12, u32_le> c_stick_x;
                 BitField<20, 12, u32_le> c_stick_y;
             };
@@ -101,15 +103,15 @@ struct ControllerState {
 static_assert(sizeof(ControllerState) == 7, "ControllerState should be 7 bytes");
 #pragma pack(pop)
 
-const u8 header_magic_bytes[4] = {'C', 'T', 'M', 0x1B};
+constexpr std::array<u8, 4> header_magic_bytes{{'C', 'T', 'M', 0x1B}};
 
 #pragma pack(push, 1)
 struct CTMHeader {
-    u8 filetype[4];  // Unique Identifier (always "CTM"0x1B)
-    u64 program_id;  // Also called title_id
-    u8 revision[20]; // Git hash
+    std::array<u8, 4> filetype;  // Unique Identifier (always "CTM"0x1B)
+    u64 program_id;              // Also called title_id
+    std::array<u8, 20> revision; // Git hash
 
-    u8 reserved[224]; // Make heading 256 bytes, just because we can
+    std::array<u8, 224> reserved; // Make heading 256 bytes, just because we can
 };
 static_assert(sizeof(CTMHeader) == 256, "CTMHeader should be 256 bytes");
 #pragma pack(pop)
@@ -342,20 +344,21 @@ static void Record(const Service::IR::ExtraHIDResponse& extra_hid_response) {
     s.extra_hid_response.zr_not_held.Assign(extra_hid_response.buttons.zr_not_held);
 
     temp_input.resize(current_byte + sizeof(ControllerState));
-    memcpy(&temp_input[current_byte], &s, sizeof(ControllerState));
+    std::memcpy(&temp_input[current_byte], &s, sizeof(ControllerState));
     current_byte += sizeof(ControllerState);
 }
 
 static bool ValidateHeader(const CTMHeader& header) {
-    if (std::memcmp(header_magic_bytes, header.filetype, 4) != 0) {
+    if (header_magic_bytes != header.filetype) {
         LOG_ERROR(Movie, "Playback file does not have valid header");
         return false;
     }
 
     std::string revision;
-    CryptoPP::StringSource ss(header.revision, sizeof(header.revision), true,
+    CryptoPP::StringSource ss(header.revision.data(), sizeof(header.revision), true,
                               new CryptoPP::HexEncoder(new CryptoPP::StringSink(revision)));
-    std::transform(revision.begin(), revision.end(), revision.begin(), ::tolower);
+
+    revision = Common::ToLower(revision);
     if (revision != Common::g_scm_rev) {
         LOG_WARNING(Movie,
                     "This movie was created on a different version of Citra, playback may desync");
@@ -370,12 +373,38 @@ static bool ValidateHeader(const CTMHeader& header) {
     return true;
 }
 
+static void SaveMovie() {
+    LOG_INFO(Movie, "Saving movie");
+    FileUtil::IOFile save_record(Settings::values.movie_record, "wb");
+
+    if (!save_record.IsGood()) {
+        LOG_ERROR(Movie, "Unable to open file to save movie");
+        return;
+    }
+
+    CTMHeader header = {};
+    header.filetype = header_magic_bytes;
+
+    Core::System::GetInstance().GetAppLoader().ReadProgramId(header.program_id);
+
+    std::string rev_bytes;
+    CryptoPP::StringSource(Common::g_scm_rev, true,
+                           new CryptoPP::HexDecoder(new CryptoPP::StringSink(rev_bytes)));
+    std::memcpy(header.revision.data(), rev_bytes.data(), sizeof(CTMHeader::revision));
+
+    save_record.WriteBytes(&header, sizeof(CTMHeader));
+    save_record.WriteBytes(temp_input.data(), temp_input.size());
+
+    if (!save_record.IsGood()) {
+        LOG_ERROR(Movie, "Error saving movie");
+    }
+}
+
 void Init() {
     if (!Settings::values.movie_play.empty()) {
         LOG_INFO(Movie, "Loading Movie for playback");
         FileUtil::IOFile save_record(Settings::values.movie_play, "rb");
         u64 size = save_record.GetSize();
-        save_record.Seek(0, SEEK_SET);
 
         if (save_record.IsGood() && size > sizeof(CTMHeader)) {
             CTMHeader header;
@@ -403,25 +432,11 @@ void Shutdown() {
         return;
     }
 
-    LOG_INFO(Movie, "Saving movie");
-    FileUtil::IOFile save_record(Settings::values.movie_record, "wb");
+    SaveMovie();
 
-    CTMHeader header = {};
-
-    std::memcpy(header.filetype, header_magic_bytes, 4);
-
-    Core::System::GetInstance().GetAppLoader().ReadProgramId(header.program_id);
-
-    std::string rev_bytes;
-    CryptoPP::StringSource(Common::g_scm_rev, true,
-                           new CryptoPP::HexDecoder(new CryptoPP::StringSink(rev_bytes)));
-    std::memcpy(header.revision, rev_bytes.data(), sizeof(CTMHeader::revision));
-
-    save_record.WriteBytes(&header, sizeof(CTMHeader));
-    save_record.WriteBytes(temp_input.data(), temp_input.size());
-    if (!save_record.IsGood()) {
-        LOG_ERROR(Movie, "Error saving movie");
-    }
+    play_mode = PlayMode::None;
+    temp_input.resize(0);
+    current_byte = 0;
 }
 
 template <typename... Targs>
