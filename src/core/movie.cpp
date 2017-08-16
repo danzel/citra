@@ -26,8 +26,8 @@ enum class ControllerStateType : u8 {
     Touch,
     Accelerometer,
     Gyroscope,
-    CStick,
-    CirclePad
+    IrRst,
+    ExtraHidResponse
 };
 
 #pragma pack(push, 1)
@@ -37,34 +37,30 @@ struct ControllerState {
     union {
         struct {
             union {
-                u32 hex;
+                u16 hex;
 
-                BitField<0, 1, u32> a;
-                BitField<1, 1, u32> b;
-                BitField<2, 1, u32> select;
-                BitField<3, 1, u32> start;
-                BitField<4, 1, u32> right;
-                BitField<5, 1, u32> left;
-                BitField<6, 1, u32> up;
-                BitField<7, 1, u32> down;
-                BitField<8, 1, u32> r;
-                BitField<9, 1, u32> l;
-                BitField<10, 1, u32> x;
-                BitField<11, 1, u32> y;
-                BitField<12, 1, u32> circle_right;
-                BitField<13, 1, u32> circle_left;
-                BitField<14, 1, u32> circle_up;
-                BitField<15, 1, u32> circle_down;
-
-                // MAX_CIRCLEPAD_POS in hid.cpp fits in one byte
-                BitField<16, 8, u32> circle_pad_x;
-                BitField<24, 8, u32> circle_pad_y;
+                BitField<0, 1, u16> a;
+                BitField<1, 1, u16> b;
+                BitField<2, 1, u16> select;
+                BitField<3, 1, u16> start;
+                BitField<4, 1, u16> right;
+                BitField<5, 1, u16> left;
+                BitField<6, 1, u16> up;
+                BitField<7, 1, u16> down;
+                BitField<8, 1, u16> r;
+                BitField<9, 1, u16> l;
+                BitField<10, 1, u16> x;
+                BitField<11, 1, u16> y;
+                // Bits 12-15 are currently unused
             };
+            s16 circle_pad_x;
+            s16 circle_pad_y;
         } pad_and_circle;
 
         struct {
             u16 x;
             u16 y;
+            // This is a bool, u8 for platform compatibility
             u8 valid;
         } touch;
 
@@ -81,12 +77,12 @@ struct ControllerState {
         } gyroscope;
 
         struct {
-            // MAX_CSTICK_RADIUS in ir_rst.cpp fits in one byte
-            u8 x;
-            u8 y;
-            bool zl;
-            bool zr;
-        } c_stick;
+            s16 x;
+            s16 y;
+            // These are bool, u8 for platform compatibility
+            u8 zl;
+            u8 zr;
+        } ir_rst;
 
         struct {
             union {
@@ -99,11 +95,13 @@ struct ControllerState {
                 BitField<8, 12, u32_le> c_stick_x;
                 BitField<20, 12, u32_le> c_stick_y;
             };
-        } circle_pad;
+        } extra_hid_response;
     };
 };
 static_assert(sizeof(ControllerState) == 7, "ControllerState should be 7 bytes");
 #pragma pack(pop)
+
+const u8 header_magic_bytes[4] = {'C', 'T', 'M', 0x1B};
 
 #pragma pack(push, 1)
 struct CTMHeader {
@@ -136,7 +134,7 @@ static void CheckInputEnd() {
 
 static void Play(Service::HID::PadState& pad_state, s16& circle_pad_x, s16& circle_pad_y) {
     ControllerState s;
-    memcpy(&s, &temp_input[current_byte], sizeof(ControllerState));
+    std::memcpy(&s, &temp_input[current_byte], sizeof(ControllerState));
     current_byte += sizeof(ControllerState);
 
     if (s.type != ControllerStateType::PadAndCircle) {
@@ -158,18 +156,14 @@ static void Play(Service::HID::PadState& pad_state, s16& circle_pad_x, s16& circ
     pad_state.l.Assign(s.pad_and_circle.l);
     pad_state.x.Assign(s.pad_and_circle.x);
     pad_state.y.Assign(s.pad_and_circle.y);
-    pad_state.circle_right.Assign(s.pad_and_circle.circle_right);
-    pad_state.circle_left.Assign(s.pad_and_circle.circle_left);
-    pad_state.circle_up.Assign(s.pad_and_circle.circle_up);
-    pad_state.circle_down.Assign(s.pad_and_circle.circle_down);
 
-    circle_pad_x = static_cast<s16>(s.pad_and_circle.circle_pad_x);
-    circle_pad_y = static_cast<s16>(s.pad_and_circle.circle_pad_y);
+    circle_pad_x = s.pad_and_circle.circle_pad_x;
+    circle_pad_y = s.pad_and_circle.circle_pad_y;
 }
 
 static void Play(Service::HID::TouchDataEntry& touch_data) {
     ControllerState s;
-    memcpy(&s, &temp_input[current_byte], sizeof(ControllerState));
+    std::memcpy(&s, &temp_input[current_byte], sizeof(ControllerState));
     current_byte += sizeof(ControllerState);
 
     if (s.type != ControllerStateType::Touch) {
@@ -186,7 +180,7 @@ static void Play(Service::HID::TouchDataEntry& touch_data) {
 
 static void Play(Service::HID::AccelerometerDataEntry& accelerometer_data) {
     ControllerState s;
-    memcpy(&s, &temp_input[current_byte], sizeof(ControllerState));
+    std::memcpy(&s, &temp_input[current_byte], sizeof(ControllerState));
     current_byte += sizeof(ControllerState);
 
     if (s.type != ControllerStateType::Accelerometer) {
@@ -203,7 +197,7 @@ static void Play(Service::HID::AccelerometerDataEntry& accelerometer_data) {
 
 static void Play(Service::HID::GyroscopeDataEntry& gyroscope_data) {
     ControllerState s;
-    memcpy(&s, &temp_input[current_byte], sizeof(ControllerState));
+    std::memcpy(&s, &temp_input[current_byte], sizeof(ControllerState));
     current_byte += sizeof(ControllerState);
 
     if (s.type != ControllerStateType::Gyroscope) {
@@ -220,40 +214,40 @@ static void Play(Service::HID::GyroscopeDataEntry& gyroscope_data) {
 
 static void Play(Service::IR::PadState& pad_state, s16& c_stick_x, s16& c_stick_y) {
     ControllerState s;
-    memcpy(&s, &temp_input[current_byte], sizeof(ControllerState));
+    std::memcpy(&s, &temp_input[current_byte], sizeof(ControllerState));
     current_byte += sizeof(ControllerState);
 
-    if (s.type != ControllerStateType::CStick) {
+    if (s.type != ControllerStateType::IrRst) {
         LOG_ERROR(Movie,
                   "Expected to read type %d, but found %d. Your playback will be out of sync",
-                  ControllerStateType::CStick, s.type);
+                  ControllerStateType::IrRst, s.type);
         return;
     }
 
-    c_stick_x = s.c_stick.x;
-    c_stick_y = s.c_stick.y;
-    pad_state.zl.Assign(s.c_stick.zl);
-    pad_state.zr.Assign(s.c_stick.zr);
+    c_stick_x = s.ir_rst.x;
+    c_stick_y = s.ir_rst.y;
+    pad_state.zl.Assign(s.ir_rst.zl);
+    pad_state.zr.Assign(s.ir_rst.zr);
 }
 
-static void Play(Service::IR::CirclePadResponse& circle_pad) {
+static void Play(Service::IR::ExtraHIDResponse& extra_hid_response) {
     ControllerState s;
-    memcpy(&s, &temp_input[current_byte], sizeof(ControllerState));
+    std::memcpy(&s, &temp_input[current_byte], sizeof(ControllerState));
     current_byte += sizeof(ControllerState);
 
-    if (s.type != ControllerStateType::CirclePad) {
+    if (s.type != ControllerStateType::ExtraHidResponse) {
         LOG_ERROR(Movie,
                   "Expected to read type %d, but found %d. Your playback will be out of sync",
-                  ControllerStateType::CirclePad, s.type);
+                  ControllerStateType::ExtraHidResponse, s.type);
         return;
     }
 
-    circle_pad.buttons.battery_level.Assign(s.circle_pad.battery_level);
-    circle_pad.c_stick.c_stick_x.Assign(s.circle_pad.c_stick_x);
-    circle_pad.c_stick.c_stick_y.Assign(s.circle_pad.c_stick_y);
-    circle_pad.buttons.r_not_held.Assign(s.circle_pad.r_not_held);
-    circle_pad.buttons.zl_not_held.Assign(s.circle_pad.zl_not_held);
-    circle_pad.buttons.zr_not_held.Assign(s.circle_pad.zr_not_held);
+    extra_hid_response.buttons.battery_level.Assign(s.extra_hid_response.battery_level);
+    extra_hid_response.c_stick.c_stick_x.Assign(s.extra_hid_response.c_stick_x);
+    extra_hid_response.c_stick.c_stick_y.Assign(s.extra_hid_response.c_stick_y);
+    extra_hid_response.buttons.r_not_held.Assign(s.extra_hid_response.r_not_held);
+    extra_hid_response.buttons.zl_not_held.Assign(s.extra_hid_response.zl_not_held);
+    extra_hid_response.buttons.zr_not_held.Assign(s.extra_hid_response.zr_not_held);
 }
 
 static void Record(const Service::HID::PadState& pad_state, const s16& circle_pad_x,
@@ -261,28 +255,24 @@ static void Record(const Service::HID::PadState& pad_state, const s16& circle_pa
     ControllerState s;
     s.type = ControllerStateType::PadAndCircle;
 
-    s.pad_and_circle.a.Assign(pad_state.a);
-    s.pad_and_circle.b.Assign(pad_state.b);
-    s.pad_and_circle.select.Assign(pad_state.select);
-    s.pad_and_circle.start.Assign(pad_state.start);
-    s.pad_and_circle.right.Assign(pad_state.right);
-    s.pad_and_circle.left.Assign(pad_state.left);
-    s.pad_and_circle.up.Assign(pad_state.up);
-    s.pad_and_circle.down.Assign(pad_state.down);
-    s.pad_and_circle.r.Assign(pad_state.r);
-    s.pad_and_circle.l.Assign(pad_state.l);
-    s.pad_and_circle.x.Assign(pad_state.x);
-    s.pad_and_circle.y.Assign(pad_state.y);
-    s.pad_and_circle.circle_right.Assign(pad_state.circle_right);
-    s.pad_and_circle.circle_left.Assign(pad_state.circle_left);
-    s.pad_and_circle.circle_up.Assign(pad_state.circle_up);
-    s.pad_and_circle.circle_down.Assign(pad_state.circle_down);
+    s.pad_and_circle.a.Assign(static_cast<u16>(pad_state.a));
+    s.pad_and_circle.b.Assign(static_cast<u16>(pad_state.b));
+    s.pad_and_circle.select.Assign(static_cast<u16>(pad_state.select));
+    s.pad_and_circle.start.Assign(static_cast<u16>(pad_state.start));
+    s.pad_and_circle.right.Assign(static_cast<u16>(pad_state.right));
+    s.pad_and_circle.left.Assign(static_cast<u16>(pad_state.left));
+    s.pad_and_circle.up.Assign(static_cast<u16>(pad_state.up));
+    s.pad_and_circle.down.Assign(static_cast<u16>(pad_state.down));
+    s.pad_and_circle.r.Assign(static_cast<u16>(pad_state.r));
+    s.pad_and_circle.l.Assign(static_cast<u16>(pad_state.l));
+    s.pad_and_circle.x.Assign(static_cast<u16>(pad_state.x));
+    s.pad_and_circle.y.Assign(static_cast<u16>(pad_state.y));
 
-    s.pad_and_circle.circle_pad_x.Assign(circle_pad_x);
-    s.pad_and_circle.circle_pad_y.Assign(circle_pad_y);
+    s.pad_and_circle.circle_pad_x = circle_pad_x;
+    s.pad_and_circle.circle_pad_y = circle_pad_y;
 
     temp_input.resize(current_byte + sizeof(ControllerState));
-    memcpy(&temp_input[current_byte], &s, sizeof(ControllerState));
+    std::memcpy(&temp_input[current_byte], &s, sizeof(ControllerState));
     current_byte += sizeof(ControllerState);
 }
 
@@ -295,7 +285,7 @@ static void Record(const Service::HID::TouchDataEntry& touch_data) {
     s.touch.valid = static_cast<u8>(touch_data.valid);
 
     temp_input.resize(current_byte + sizeof(ControllerState));
-    memcpy(&temp_input[current_byte], &s, sizeof(ControllerState));
+    std::memcpy(&temp_input[current_byte], &s, sizeof(ControllerState));
     current_byte += sizeof(ControllerState);
 }
 
@@ -308,7 +298,7 @@ static void Record(const Service::HID::AccelerometerDataEntry& accelerometer_dat
     s.accelerometer.z = accelerometer_data.z;
 
     temp_input.resize(current_byte + sizeof(ControllerState));
-    memcpy(&temp_input[current_byte], &s, sizeof(ControllerState));
+    std::memcpy(&temp_input[current_byte], &s, sizeof(ControllerState));
     current_byte += sizeof(ControllerState);
 }
 
@@ -321,35 +311,35 @@ static void Record(const Service::HID::GyroscopeDataEntry& gyroscope_data) {
     s.gyroscope.z = gyroscope_data.z;
 
     temp_input.resize(current_byte + sizeof(ControllerState));
-    memcpy(&temp_input[current_byte], &s, sizeof(ControllerState));
+    std::memcpy(&temp_input[current_byte], &s, sizeof(ControllerState));
     current_byte += sizeof(ControllerState);
 }
 
 static void Record(const Service::IR::PadState& pad_state, const s16& c_stick_x,
                    const s16& c_stick_y) {
     ControllerState s;
-    s.type = ControllerStateType::CStick;
+    s.type = ControllerStateType::IrRst;
 
-    s.c_stick.x = static_cast<u8>(c_stick_x);
-    s.c_stick.y = static_cast<u8>(c_stick_y);
-    s.c_stick.zl = pad_state.zl;
-    s.c_stick.zr = pad_state.zr;
+    s.ir_rst.x = c_stick_x;
+    s.ir_rst.y = c_stick_y;
+    s.ir_rst.zl = static_cast<u8>(pad_state.zl);
+    s.ir_rst.zr = static_cast<u8>(pad_state.zr);
 
     temp_input.resize(current_byte + sizeof(ControllerState));
-    memcpy(&temp_input[current_byte], &s, sizeof(ControllerState));
+    std::memcpy(&temp_input[current_byte], &s, sizeof(ControllerState));
     current_byte += sizeof(ControllerState);
 }
 
-static void Record(const Service::IR::CirclePadResponse& circle_pad) {
+static void Record(const Service::IR::ExtraHIDResponse& extra_hid_response) {
     ControllerState s;
-    s.type = ControllerStateType::CirclePad;
+    s.type = ControllerStateType::ExtraHidResponse;
 
-    s.circle_pad.battery_level.Assign(circle_pad.buttons.battery_level);
-    s.circle_pad.c_stick_x.Assign(circle_pad.c_stick.c_stick_x);
-    s.circle_pad.c_stick_y.Assign(circle_pad.c_stick.c_stick_y);
-    s.circle_pad.r_not_held.Assign(circle_pad.buttons.r_not_held);
-    s.circle_pad.zl_not_held.Assign(circle_pad.buttons.zl_not_held);
-    s.circle_pad.zr_not_held.Assign(circle_pad.buttons.zr_not_held);
+    s.extra_hid_response.battery_level.Assign(extra_hid_response.buttons.battery_level);
+    s.extra_hid_response.c_stick_x.Assign(extra_hid_response.c_stick.c_stick_x);
+    s.extra_hid_response.c_stick_y.Assign(extra_hid_response.c_stick.c_stick_y);
+    s.extra_hid_response.r_not_held.Assign(extra_hid_response.buttons.r_not_held);
+    s.extra_hid_response.zl_not_held.Assign(extra_hid_response.buttons.zl_not_held);
+    s.extra_hid_response.zr_not_held.Assign(extra_hid_response.buttons.zr_not_held);
 
     temp_input.resize(current_byte + sizeof(ControllerState));
     memcpy(&temp_input[current_byte], &s, sizeof(ControllerState));
@@ -357,8 +347,7 @@ static void Record(const Service::IR::CirclePadResponse& circle_pad) {
 }
 
 static bool ValidateHeader(const CTMHeader& header) {
-    if (header.filetype[0] != 'C' || header.filetype[1] != 'T' || header.filetype[2] != 'M' ||
-        header.filetype[3] != 0x1B) {
+    if (std::memcmp(header_magic_bytes, header.filetype, 4) != 0) {
         LOG_ERROR(Movie, "Playback file does not have valid header");
         return false;
     }
@@ -418,10 +407,7 @@ void Shutdown() {
 
     CTMHeader header = {};
 
-    header.filetype[0] = 'C';
-    header.filetype[1] = 'T';
-    header.filetype[2] = 'M';
-    header.filetype[3] = 0x1B;
+    std::memcpy(header.filetype, header_magic_bytes, 4);
 
     Core::System::GetInstance().GetAppLoader().ReadProgramId(header.program_id);
 
@@ -464,11 +450,11 @@ void HandleGyroscopeStatus(Service::HID::GyroscopeDataEntry& gyroscope_data) {
     Handle(gyroscope_data);
 }
 
-void HandleCStick(Service::IR::PadState& pad_state, s16& c_stick_x, s16& c_stick_y) {
+void HandleIrRst(Service::IR::PadState& pad_state, s16& c_stick_x, s16& c_stick_y) {
     Handle(pad_state, c_stick_x, c_stick_y);
 }
 
-void HandleCirclePad(Service::IR::CirclePadResponse& circle_pad) {
-    Handle(circle_pad);
+void HandleExtraHidResponse(Service::IR::ExtraHIDResponse& extra_hid_response) {
+    Handle(extra_hid_response);
 }
 }

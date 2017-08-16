@@ -127,13 +127,14 @@ static void UpdatePadCallback(u64 userdata, int cycles_late) {
     constexpr int MAX_CIRCLEPAD_POS = 0x9C; // Max value for a circle pad position
     s16 circle_pad_x = static_cast<s16>(circle_pad_x_f * MAX_CIRCLEPAD_POS);
     s16 circle_pad_y = static_cast<s16>(circle_pad_y_f * MAX_CIRCLEPAD_POS);
+
+    Movie::HandlePadAndCircleStatus(state, circle_pad_x, circle_pad_y);
+
     const DirectionState direction = GetStickDirectionState(circle_pad_x, circle_pad_y);
     state.circle_up.Assign(direction.up);
     state.circle_down.Assign(direction.down);
     state.circle_left.Assign(direction.left);
     state.circle_right.Assign(direction.right);
-
-    Movie::HandlePadAndCircleStatus(state, circle_pad_x, circle_pad_y);
 
     mem->pad.current_state.hex = state.hex;
     mem->pad.index = next_pad_index;

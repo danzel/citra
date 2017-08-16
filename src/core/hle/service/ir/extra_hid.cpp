@@ -184,7 +184,7 @@ void ExtraHID::SendHIDStatus() {
     float x, y;
     std::tie(x, y) = c_stick->GetStatus();
 
-    CirclePadResponse response;
+    ExtraHIDResponse response;
     response.c_stick.header.Assign(static_cast<u8>(ResponseID::PollHID));
     response.c_stick.c_stick_x.Assign(static_cast<u32>(C_STICK_CENTER + C_STICK_RADIUS * x));
     response.c_stick.c_stick_y.Assign(static_cast<u32>(C_STICK_CENTER + C_STICK_RADIUS * y));
@@ -194,7 +194,7 @@ void ExtraHID::SendHIDStatus() {
     response.buttons.r_not_held.Assign(1);
     response.unknown = 0;
 
-    Movie::HandleCirclePad(response);
+    Movie::HandleExtraHidResponse(response);
 
     std::vector<u8> response_buffer(sizeof(response));
     memcpy(response_buffer.data(), &response, sizeof(response));

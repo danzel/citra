@@ -13,7 +13,7 @@
 namespace Service {
 namespace IR {
 
-struct CirclePadResponse {
+struct ExtraHIDResponse {
     union {
         BitField<0, 8, u32_le> header;
         BitField<8, 12, u32_le> c_stick_x;
@@ -27,7 +27,7 @@ struct CirclePadResponse {
     } buttons;
     u8 unknown;
 };
-static_assert(sizeof(CirclePadResponse) == 6, "HID status response has wrong size!");
+static_assert(sizeof(ExtraHIDResponse) == 6, "HID status response has wrong size!");
 
 /**
  * An IRDevice emulating Circle Pad Pro or New 3DS additional HID hardware.

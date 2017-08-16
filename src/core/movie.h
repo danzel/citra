@@ -14,7 +14,7 @@ struct PadState;
 struct TouchDataEntry;
 }
 namespace IR {
-struct CirclePadResponse;
+struct ExtraHIDResponse;
 union PadState;
 }
 }
@@ -25,18 +25,40 @@ void Init();
 
 void Shutdown();
 
+/**
+ * When recording: Takes a copy of the given input states so they can be used for playback
+ * When playing: Replaces the given input states with the ones stored in the playback file
+ */
 void HandlePadAndCircleStatus(Service::HID::PadState& pad_state, s16& circle_pad_x,
                               s16& circle_pad_y);
 
+/**
+* When recording: Takes a copy of the given input states so they can be used for playback
+* When playing: Replaces the given input states with the ones stored in the playback file
+*/
 void HandleTouchStatus(Service::HID::TouchDataEntry& touch_data);
 
+/**
+* When recording: Takes a copy of the given input states so they can be used for playback
+* When playing: Replaces the given input states with the ones stored in the playback file
+*/
 void HandleAccelerometerStatus(Service::HID::AccelerometerDataEntry& accelerometer_data);
 
+/**
+* When recording: Takes a copy of the given input states so they can be used for playback
+* When playing: Replaces the given input states with the ones stored in the playback file
+*/
 void HandleGyroscopeStatus(Service::HID::GyroscopeDataEntry& gyroscope_data);
 
-void HandleCStick(Service::IR::PadState& pad_state, s16& c_stick_x, s16& c_stick_y);
+/**
+* When recording: Takes a copy of the given input states so they can be used for playback
+* When playing: Replaces the given input states with the ones stored in the playback file
+*/
+void HandleIrRst(Service::IR::PadState& pad_state, s16& c_stick_x, s16& c_stick_y);
 
-void HandleCirclePad(Service::IR::CirclePadResponse& circle_pad);
-
-// TODO: Handle C-Stick
+/**
+* When recording: Takes a copy of the given input states so they can be used for playback
+* When playing: Replaces the given input states with the ones stored in the playback file
+*/
+void HandleExtraHidResponse(Service::IR::ExtraHIDResponse& extra_hid_response);
 }

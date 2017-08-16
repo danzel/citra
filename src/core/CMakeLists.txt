@@ -380,9 +380,9 @@ set(HEADERS
             tracer/recorder.h
             tracer/citrace.h
             memory.h
-            movie.h
             memory_setup.h
             mmio.h
+            movie.h
             perf_stats.h
             settings.h
             telemetry_session.h
