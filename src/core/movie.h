@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <functional>
 #include "common/common_types.h"
 
 namespace Service {
@@ -24,6 +25,8 @@ namespace Movie {
 void Init();
 
 void Shutdown();
+
+extern std::function<void()> OnComplete;
 
 /**
  * When recording: Takes a copy of the given input states so they can be used for playback

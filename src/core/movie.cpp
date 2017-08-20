@@ -21,6 +21,8 @@
 
 namespace Movie {
 
+std::function<void()> OnComplete;
+
 enum class PlayMode { None, Recording, Playing };
 
 enum class ControllerStateType : u8 {
@@ -131,6 +133,10 @@ static void CheckInputEnd() {
     if (current_byte + sizeof(ControllerState) > temp_input.size()) {
         LOG_INFO(Movie, "Playback finished");
         play_mode = PlayMode::None;
+
+        if (OnComplete) {
+            OnComplete();
+        }
     }
 }
 

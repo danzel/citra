@@ -6,6 +6,9 @@
 #include <memory>
 #include <string>
 #include <thread>
+#define SDL_MAIN_HANDLED
+#include <SDL.h>
+//#include <glad/glad.h>
 
 // This needs to be included before getopt.h because the latter #defines symbols used by it
 #include "common/microprofile.h"
@@ -34,7 +37,10 @@
 #include "common/string_util.h"
 #include "core/core.h"
 #include "core/gdbstub/gdbstub.h"
+#include "core/hw/gpu.h"
 #include "core/loader/loader.h"
+#include "core/memory.h"
+#include "core/movie.h"
 #include "core/settings.h"
 
 static void PrintHelp(const char* argv0) {
@@ -43,6 +49,7 @@ static void PrintHelp(const char* argv0) {
                  "-g, --gdbport=NUMBER       Enable gdb stub on port NUMBER\n"
                  "-r, --movie-record=[file]  Record a movie (game inputs) to the given file\n"
                  "-p, --movie-play=[file]    Playback the movie (game inputs) from the given file\n"
+                 "-t, --movie-test           When movie playback has finished, take a screenshot and close the emulator\n"
                  "-h, --help                 Display this help and exit\n"
                  "-v, --version              Output version information and exit\n";
 }
@@ -59,6 +66,7 @@ int main(int argc, char** argv) {
     u32 gdb_port = static_cast<u32>(Settings::values.gdbstub_port);
     std::string movie_record;
     std::string movie_play;
+    bool movie_test = false;
 
     char* endarg;
 #ifdef _WIN32
@@ -74,12 +82,13 @@ int main(int argc, char** argv) {
 
     static struct option long_options[] = {
         {"gdbport", required_argument, 0, 'g'},    {"movie-record", required_argument, 0, 'r'},
-        {"movie-play", required_argument, 0, 'p'}, {"help", no_argument, 0, 'h'},
-        {"version", no_argument, 0, 'v'},          {0, 0, 0, 0},
+        {"movie-play", required_argument, 0, 'p'}, {"movie-test", no_argument, 0, 't'},
+        {"help", no_argument, 0, 'h'},             {"version", no_argument, 0, 'v'},
+        {0, 0, 0, 0},
     };
 
     while (optind < argc) {
-        char arg = getopt_long(argc, argv, "g:r:p:hv", long_options, &option_index);
+        char arg = getopt_long(argc, argv, "g:r:p:thv", long_options, &option_index);
         if (arg != -1) {
             switch (arg) {
             case 'g':
@@ -95,6 +104,9 @@ int main(int argc, char** argv) {
                 break;
             case 'r':
                 movie_record = optarg;
+                break;
+            case 't':
+                movie_test = true;
                 break;
             case 'p':
                 movie_play = optarg;
@@ -179,6 +191,82 @@ int main(int argc, char** argv) {
         return -1;
     case Core::System::ResultStatus::Success:
         break; // Expected case
+    }
+
+    if (movie_test) {
+        LOG_INFO(Frontend, "Enabling CI Mode");
+        Movie::OnComplete = []() {
+            LOG_INFO(Frontend, "Movie done, saving screenshot and exiting");
+
+            for (int i : {0, 1}) {
+                auto framebuffer = GPU::g_regs.framebuffer_config[i];
+
+                const int w = framebuffer.width;
+                const int h = framebuffer.height;
+
+                int bpp = GPU::Regs::BytesPerPixel(framebuffer.color_format);
+                size_t line_size = w * bpp;
+
+                const PAddr framebuffer_addr =
+                    framebuffer.active_fb == 0 ? framebuffer.address_left1 : framebuffer.address_left2;
+                Memory::RasterizerFlushRegion(framebuffer_addr, framebuffer.stride * framebuffer.height);
+                const u8* framebuffer_data = Memory::GetPhysicalPointer(framebuffer_addr);
+
+                LOG_INFO(Frontend, "Saving image of size %d,%d stride %d, lw %d @ cf %d, bpp %d", w, h, framebuffer.stride, line_size, framebuffer.color_format, bpp);
+
+                SDL_Surface* image = NULL;
+                switch (framebuffer.color_format)
+                {
+                case GPU::Regs::PixelFormat::RGBA8:
+                    image = SDL_CreateRGBSurface(0, w, h, bpp * 8, 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF);
+                    break;
+                case GPU::Regs::PixelFormat::RGB8:
+                    image = SDL_CreateRGBSurface(0, w, h, bpp * 8, 0x00FF0000, 0x0000FF00, 0x000000FF, 0);
+                    break;
+                case GPU::Regs::PixelFormat::RGB565:
+                    image = SDL_CreateRGBSurface(0, w, h, bpp * 8, 0x0000F800, 0x000007E0, 0x0000001F, 0);
+                    break;
+                case GPU::Regs::PixelFormat::RGB5A1:
+                    image = SDL_CreateRGBSurface(0, w, h, bpp * 8, 0x0000F800, 0x000007C0, 0x0000003E, 0x00000001);
+                    break;
+                case GPU::Regs::PixelFormat::RGBA4:
+                    image = SDL_CreateRGBSurface(0, w, h, bpp * 8, 0x0000F000, 0x00000F00, 0x000000F0, 0x0000000F);
+                    break;
+                default:
+                    LOG_ERROR(Frontend, "[UNIMPLEMENTED] Not sure how to save an image in PixelFormat %d", framebuffer.color_format);
+                    break;
+                }
+                if (image == NULL) {
+                    LOG_ERROR(Frontend, "Error creating a surface %s", SDL_GetError());
+                    continue;
+                }
+
+                SDL_LockSurface(image);
+
+                auto pixels = static_cast<u8*>(image->pixels);
+                for (int y = 0; y < h; y++) {
+                    std::memcpy(pixels + line_size * y, framebuffer_data + framebuffer.stride * y, line_size);
+                }
+
+                //Flip Vertically
+                /*std::array<u8, line_size> line;
+                for (int y = 0; y < h / 2; y++) {
+                    std::memcpy(line.data(), static_cast<u8*>(image->pixels) + y * line_size, line_size);
+                    std::memcpy(static_cast<u8*>(image->pixels) + y * line_size, static_cast<u8*>(image->pixels) + (h - y - 1) * line_size, line_size);
+                    std::memcpy(static_cast<u8*>(image->pixels) + (h - y - 1) * line_size, line.data(), line_size);
+                }*/
+
+                SDL_UnlockSurface(image);
+
+                SDL_SaveBMP(image, i == 0 ?"screenshot_0.bmp" : "screenshot_1.bmp");
+                SDL_FreeSurface(image);
+            }
+
+            //Tell SDL to quit
+            SDL_Event sdlevent;
+            sdlevent.type = SDL_QUIT;
+            SDL_PushEvent(&sdlevent);
+        };
     }
 
     while (emu_window->IsOpen()) {
