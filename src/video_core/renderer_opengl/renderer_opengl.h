@@ -40,12 +40,6 @@ public:
     /// Swap buffers (render frame)
     void SwapBuffers() override;
 
-    /**
-     * Set the emulator window to use for renderer
-     * @param window EmuWindow handle to emulator window to use for rendering
-     */
-    void SetWindow(EmuWindow* window) override;
-
     /// Initialize the renderer
     bool Init() override;
 
@@ -65,8 +59,6 @@ private:
                             ScreenInfo& screen_info);
     // Fills active OpenGL texture with the given RGB color.
     void LoadColorToActiveGLTexture(u8 color_r, u8 color_g, u8 color_b, const TextureInfo& texture);
-
-    EmuWindow* render_window; ///< Handle to render window
 
     OpenGLState state;
 

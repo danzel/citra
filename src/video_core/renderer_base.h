@@ -24,7 +24,9 @@ public:
      * Set the emulator window to use for renderer
      * @param window EmuWindow handle to emulator window to use for rendering
      */
-    virtual void SetWindow(EmuWindow* window) = 0;
+    void SetWindow(EmuWindow* window) {
+        render_window = window;
+    }
 
     /// Initialize the renderer
     virtual bool Init() = 0;
@@ -53,6 +55,9 @@ protected:
     std::unique_ptr<VideoCore::RasterizerInterface> rasterizer;
     f32 m_current_fps = 0.0f; ///< Current framerate, should be set by the renderer
     int m_current_frame = 0;  ///< Current frame, should be set by the renderer
+    EmuWindow* render_window; ///< Handle to render window
+
+    u32 GetColorFillForFramebuffer(int framebuffer_index);
 
 private:
     bool opengl_rasterizer_active = false;

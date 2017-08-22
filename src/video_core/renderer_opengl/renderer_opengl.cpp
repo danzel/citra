@@ -14,7 +14,6 @@
 #include "core/core_timing.h"
 #include "core/frontend/emu_window.h"
 #include "core/hw/gpu.h"
-#include "core/hw/hw.h"
 #include "core/hw/lcd.h"
 #include "core/memory.h"
 #include "core/settings.h"
@@ -106,12 +105,7 @@ void RendererOpenGL::SwapBuffers() {
     for (int i : {0, 1}) {
         const auto& framebuffer = GPU::g_regs.framebuffer_config[i];
 
-        // Main LCD (0): 0x1ED02204, Sub LCD (1): 0x1ED02A04
-        u32 lcd_color_addr =
-            (i == 0) ? LCD_REG_INDEX(color_fill_top) : LCD_REG_INDEX(color_fill_bottom);
-        lcd_color_addr = HW::VADDR_LCD + 4 * lcd_color_addr;
-        LCD::Regs::ColorFill color_fill = {0};
-        LCD::Read(color_fill.raw, lcd_color_addr);
+        LCD::Regs::ColorFill color_fill{GetColorFillForFramebuffer(i)};
 
         if (color_fill.is_enabled) {
             LoadColorToActiveGLTexture(color_fill.color_r, color_fill.color_g, color_fill.color_b,
@@ -409,14 +403,6 @@ void RendererOpenGL::DrawScreens() {
 
 /// Updates the framerate
 void RendererOpenGL::UpdateFramerate() {}
-
-/**
- * Set the emulator window to use for renderer
- * @param window EmuWindow handle to emulator window to use for rendering
- */
-void RendererOpenGL::SetWindow(EmuWindow* window) {
-    render_window = window;
-}
 
 static const char* GetSource(GLenum source) {
 #define RET(s)                                                                                     \
