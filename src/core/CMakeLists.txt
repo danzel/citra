@@ -225,6 +225,7 @@ set(HEADERS
             frontend/emu_window.h
             frontend/framebuffer_layout.h
             frontend/input.h
+            frontend/screenshot_data.h
             gdbstub/gdbstub.h
             hle/config_mem.h
             hle/function_wrappers.h

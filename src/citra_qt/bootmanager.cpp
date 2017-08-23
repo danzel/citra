@@ -1,5 +1,6 @@
 #include <QApplication>
 #include <QHBoxLayout>
+#include <QImage>
 #include <QKeyEvent>
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)
@@ -14,6 +15,7 @@
 #include "common/string_util.h"
 #include "core/3ds.h"
 #include "core/core.h"
+#include "core/frontend/screenshot_data.h"
 #include "core/settings.h"
 #include "input_common/keyboard.h"
 #include "input_common/main.h"
@@ -153,6 +155,16 @@ void GRenderWindow::DoneCurrent() {
 }
 
 void GRenderWindow::PollEvents() {}
+
+void GRenderWindow::ReceiveScreenshot(std::unique_ptr<ScreenshotData> screenshot) {
+    QImage image(screenshot->screens[0].data.data(), screenshot->screens[0].width,
+                 screenshot->screens[0].height, QImage::Format::Format_RGB888);
+    image.save("screenshot_0.png");
+
+    image = QImage(screenshot->screens[1].data.data(), screenshot->screens[1].width,
+                   screenshot->screens[1].height, QImage::Format::Format_RGB888);
+    image.save("screenshot_1.png");
+}
 
 // On Qt 5.0+, this correctly gets the size of the framebuffer (pixels).
 //

@@ -13,6 +13,7 @@
 #include "core/core.h"
 #include "core/core_timing.h"
 #include "core/frontend/emu_window.h"
+#include "core/frontend/screenshot_data.h"
 #include "core/hw/gpu.h"
 #include "core/hw/lcd.h"
 #include "core/memory.h"
@@ -134,6 +135,9 @@ void RendererOpenGL::SwapBuffers() {
     DrawScreens();
 
     Core::System::GetInstance().perf_stats.EndSystemFrame();
+
+    if (render_window->IsScreenshotRequested())
+        SaveScreenshot();
 
     // Swap buffers
     render_window->PollEvents();

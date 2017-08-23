@@ -11,6 +11,8 @@
 #include "common/math_util.h"
 #include "core/frontend/framebuffer_layout.h"
 
+class ScreenshotData;
+
 /**
  * Abstraction class used to provide an interface between emulation code and the frontend
  * (e.g. SDL, QGLWidget, GLFW, etc...).
@@ -112,6 +114,12 @@ public:
      */
     void UpdateCurrentFramebufferLayout(unsigned width, unsigned height);
 
+    bool IsScreenshotRequested() const {
+        return screenshot_requested;
+    }
+
+    virtual void ReceiveScreenshot(std::unique_ptr<ScreenshotData> screenshot) = 0;
+
 protected:
     EmuWindow() {
         // TODO: Find a better place to set this.
@@ -120,6 +128,7 @@ protected:
         touch_x = 0;
         touch_y = 0;
         touch_pressed = false;
+        screenshot_requested = false;
     }
     virtual ~EmuWindow() {}
 
@@ -181,6 +190,8 @@ private:
 
     u16 touch_x; ///< Touchpad X-position in native 3DS pixel coordinates (0-320)
     u16 touch_y; ///< Touchpad Y-position in native 3DS pixel coordinates (0-240)
+
+    bool screenshot_requested;
 
     /**
      * Clip the provided coordinates to be inside the touchscreen area.

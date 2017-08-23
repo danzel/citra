@@ -113,6 +113,7 @@ public:
     void MakeCurrent() override;
     void DoneCurrent() override;
     void PollEvents() override;
+    void ReceiveScreenshot(std::unique_ptr<ScreenshotData> screenshot) override;
 
     void BackupGeometry();
     void RestoreGeometry();

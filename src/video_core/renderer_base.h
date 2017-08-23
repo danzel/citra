@@ -59,6 +59,8 @@ protected:
 
     u32 GetColorFillForFramebuffer(int framebuffer_index);
 
+    void SaveScreenshot();
+
 private:
     bool opengl_rasterizer_active = false;
 };

@@ -13,6 +13,7 @@
 #include "common/scm_rev.h"
 #include "common/string_util.h"
 #include "core/3ds.h"
+#include "core/frontend/screenshot_data.h"
 #include "core/settings.h"
 #include "input_common/keyboard.h"
 #include "input_common/main.h"
@@ -175,4 +176,20 @@ void EmuWindow_SDL2::OnMinimalClientAreaChangeRequest(
     const std::pair<unsigned, unsigned>& minimal_size) {
 
     SDL_SetWindowMinimumSize(render_window, minimal_size.first, minimal_size.second);
+}
+
+void EmuWindow_SDL2::ReceiveScreenshot(std::unique_ptr<ScreenshotData> screenshot) {
+    SDL_Surface* image = SDL_CreateRGBSurfaceFrom(
+        screenshot->screens[0].data.data(), screenshot->screens[0].width,
+        screenshot->screens[0].height, 3 * 8, screenshot->screens[0].width * 3, 0x000000FF,
+        0x0000FF00, 0x00FF0000, 0);
+    SDL_SaveBMP(image, "screenshot_0.bmp");
+    SDL_FreeSurface(image);
+
+    image = SDL_CreateRGBSurfaceFrom(screenshot->screens[1].data.data(),
+                                     screenshot->screens[1].width, screenshot->screens[1].height,
+                                     3 * 8, screenshot->screens[1].width * 3, 0x000000FF,
+                                     0x0000FF00, 0x00FF0000, 0);
+    SDL_SaveBMP(image, "screenshot_1.bmp");
+    SDL_FreeSurface(image);
 }
