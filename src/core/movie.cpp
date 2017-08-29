@@ -252,6 +252,12 @@ static void Play(Service::IR::ExtraHIDResponse& extra_hid_response) {
     extra_hid_response.buttons.zr_not_held.Assign(s.extra_hid_response.zr_not_held);
 }
 
+static void Record(const ControllerState& controller_state) {
+    temp_input.resize(current_byte + sizeof(ControllerState));
+    std::memcpy(&temp_input[current_byte], &controller_state, sizeof(ControllerState));
+    current_byte += sizeof(ControllerState);
+}
+
 static void Record(const Service::HID::PadState& pad_state, const s16& circle_pad_x,
                    const s16& circle_pad_y) {
     ControllerState s;
@@ -273,9 +279,7 @@ static void Record(const Service::HID::PadState& pad_state, const s16& circle_pa
     s.pad_and_circle.circle_pad_x = circle_pad_x;
     s.pad_and_circle.circle_pad_y = circle_pad_y;
 
-    temp_input.resize(current_byte + sizeof(ControllerState));
-    std::memcpy(&temp_input[current_byte], &s, sizeof(ControllerState));
-    current_byte += sizeof(ControllerState);
+    Record(s);
 }
 
 static void Record(const Service::HID::TouchDataEntry& touch_data) {
@@ -286,9 +290,7 @@ static void Record(const Service::HID::TouchDataEntry& touch_data) {
     s.touch.y = touch_data.y;
     s.touch.valid = static_cast<u8>(touch_data.valid);
 
-    temp_input.resize(current_byte + sizeof(ControllerState));
-    std::memcpy(&temp_input[current_byte], &s, sizeof(ControllerState));
-    current_byte += sizeof(ControllerState);
+    Record(s);
 }
 
 static void Record(const Service::HID::AccelerometerDataEntry& accelerometer_data) {
@@ -299,9 +301,7 @@ static void Record(const Service::HID::AccelerometerDataEntry& accelerometer_dat
     s.accelerometer.y = accelerometer_data.y;
     s.accelerometer.z = accelerometer_data.z;
 
-    temp_input.resize(current_byte + sizeof(ControllerState));
-    std::memcpy(&temp_input[current_byte], &s, sizeof(ControllerState));
-    current_byte += sizeof(ControllerState);
+    Record(s);
 }
 
 static void Record(const Service::HID::GyroscopeDataEntry& gyroscope_data) {
@@ -312,9 +312,7 @@ static void Record(const Service::HID::GyroscopeDataEntry& gyroscope_data) {
     s.gyroscope.y = gyroscope_data.y;
     s.gyroscope.z = gyroscope_data.z;
 
-    temp_input.resize(current_byte + sizeof(ControllerState));
-    std::memcpy(&temp_input[current_byte], &s, sizeof(ControllerState));
-    current_byte += sizeof(ControllerState);
+    Record(s);
 }
 
 static void Record(const Service::IR::PadState& pad_state, const s16& c_stick_x,
@@ -327,9 +325,7 @@ static void Record(const Service::IR::PadState& pad_state, const s16& c_stick_x,
     s.ir_rst.zl = static_cast<u8>(pad_state.zl);
     s.ir_rst.zr = static_cast<u8>(pad_state.zr);
 
-    temp_input.resize(current_byte + sizeof(ControllerState));
-    std::memcpy(&temp_input[current_byte], &s, sizeof(ControllerState));
-    current_byte += sizeof(ControllerState);
+    Record(s);
 }
 
 static void Record(const Service::IR::ExtraHIDResponse& extra_hid_response) {
@@ -343,9 +339,7 @@ static void Record(const Service::IR::ExtraHIDResponse& extra_hid_response) {
     s.extra_hid_response.zl_not_held.Assign(extra_hid_response.buttons.zl_not_held);
     s.extra_hid_response.zr_not_held.Assign(extra_hid_response.buttons.zr_not_held);
 
-    temp_input.resize(current_byte + sizeof(ControllerState));
-    std::memcpy(&temp_input[current_byte], &s, sizeof(ControllerState));
-    current_byte += sizeof(ControllerState);
+    Record(s);
 }
 
 static bool ValidateHeader(const CTMHeader& header) {
