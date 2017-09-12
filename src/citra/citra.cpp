@@ -248,18 +248,14 @@ int main(int argc, char** argv) {
                     std::memcpy(pixels + line_size * y, framebuffer_data + framebuffer.stride * y, line_size);
                 }
 
-                //Flip Vertically
-                /*std::array<u8, line_size> line;
-                for (int y = 0; y < h / 2; y++) {
-                    std::memcpy(line.data(), static_cast<u8*>(image->pixels) + y * line_size, line_size);
-                    std::memcpy(static_cast<u8*>(image->pixels) + y * line_size, static_cast<u8*>(image->pixels) + (h - y - 1) * line_size, line_size);
-                    std::memcpy(static_cast<u8*>(image->pixels) + (h - y - 1) * line_size, line.data(), line_size);
-                }*/
-
                 SDL_UnlockSurface(image);
 
-                SDL_SaveBMP(image, i == 0 ?"screenshot_0.bmp" : "screenshot_1.bmp");
+                SDL_Surface* image2 = SDL_ConvertSurfaceFormat(image, SDL_PIXELFORMAT_RGB888, 0);
+
+                SDL_SaveBMP(image2, i == 0 ?"screenshot_0.bmp" : "screenshot_1.bmp");
+
                 SDL_FreeSurface(image);
+                SDL_FreeSurface(image2);
             }
 
             //Tell SDL to quit
