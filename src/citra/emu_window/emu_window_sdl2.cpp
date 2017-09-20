@@ -125,6 +125,8 @@ EmuWindow_SDL2::~EmuWindow_SDL2() {
 
 void EmuWindow_SDL2::SwapBuffers() {
     SDL_GL_SwapWindow(render_window);
+    if (OnSwapBuffers)
+        OnSwapBuffers();
 }
 
 void EmuWindow_SDL2::PollEvents() {
