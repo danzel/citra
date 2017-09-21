@@ -39,48 +39,48 @@ struct ControllerState {
     union {
         struct {
             union {
-                u16 hex;
+                u16_le hex;
 
-                BitField<0, 1, u16> a;
-                BitField<1, 1, u16> b;
-                BitField<2, 1, u16> select;
-                BitField<3, 1, u16> start;
-                BitField<4, 1, u16> right;
-                BitField<5, 1, u16> left;
-                BitField<6, 1, u16> up;
-                BitField<7, 1, u16> down;
-                BitField<8, 1, u16> r;
-                BitField<9, 1, u16> l;
-                BitField<10, 1, u16> x;
-                BitField<11, 1, u16> y;
+                BitField<0, 1, u16_le> a;
+                BitField<1, 1, u16_le> b;
+                BitField<2, 1, u16_le> select;
+                BitField<3, 1, u16_le> start;
+                BitField<4, 1, u16_le> right;
+                BitField<5, 1, u16_le> left;
+                BitField<6, 1, u16_le> up;
+                BitField<7, 1, u16_le> down;
+                BitField<8, 1, u16_le> r;
+                BitField<9, 1, u16_le> l;
+                BitField<10, 1, u16_le> x;
+                BitField<11, 1, u16_le> y;
                 // Bits 12-15 are currently unused
             };
-            s16 circle_pad_x;
-            s16 circle_pad_y;
+            s16_le circle_pad_x;
+            s16_le circle_pad_y;
         } pad_and_circle;
 
         struct {
-            u16 x;
-            u16 y;
+            u16_le x;
+            u16_le y;
             // This is a bool, u8 for platform compatibility
             u8 valid;
         } touch;
 
         struct {
-            s16 x;
-            s16 y;
-            s16 z;
+            s16_le x;
+            s16_le y;
+            s16_le z;
         } accelerometer;
 
         struct {
-            s16 x;
-            s16 y;
-            s16 z;
+            s16_le x;
+            s16_le y;
+            s16_le z;
         } gyroscope;
 
         struct {
-            s16 x;
-            s16 y;
+            s16_le x;
+            s16_le y;
             // These are bool, u8 for platform compatibility
             u8 zl;
             u8 zr;
@@ -88,12 +88,12 @@ struct ControllerState {
 
         struct {
             union {
-                u32 hex;
+                u32_le hex;
 
-                BitField<0, 5, u32> battery_level;
-                BitField<5, 1, u32> zl_not_held;
-                BitField<6, 1, u32> zr_not_held;
-                BitField<7, 1, u32> r_not_held;
+                BitField<0, 5, u32_le> battery_level;
+                BitField<5, 1, u32_le> zl_not_held;
+                BitField<6, 1, u32_le> zr_not_held;
+                BitField<7, 1, u32_le> r_not_held;
                 BitField<8, 12, u32_le> c_stick_x;
                 BitField<20, 12, u32_le> c_stick_y;
             };
@@ -108,7 +108,7 @@ constexpr std::array<u8, 4> header_magic_bytes{{'C', 'T', 'M', 0x1B}};
 #pragma pack(push, 1)
 struct CTMHeader {
     std::array<u8, 4> filetype;  // Unique Identifier (always "CTM"0x1B)
-    u64 program_id;              // Also called title_id
+    u64_le program_id;           // Also called title_id
     std::array<u8, 20> revision; // Git hash
 
     std::array<u8, 224> reserved; // Make heading 256 bytes, just because we can
