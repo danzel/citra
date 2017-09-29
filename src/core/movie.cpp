@@ -107,17 +107,17 @@ constexpr std::array<u8, 4> header_magic_bytes{{'C', 'T', 'M', 0x1B}};
 
 #pragma pack(push, 1)
 struct CTMHeader {
-    std::array<u8, 4> filetype;  // Unique Identifier (always "CTM"0x1B)
-    u64_le program_id;           // Also called title_id
-    std::array<u8, 20> revision; // Git hash
+    std::array<u8, 4> filetype;  /// Unique Identifier to check the file type (always "CTM"0x1B)
+    u64_le program_id;           /// ID of the ROM being executed. Also called title_id
+    std::array<u8, 20> revision; /// Git hash of the revision this movie was created with
 
-    std::array<u8, 224> reserved; // Make heading 256 bytes, just because we can
+    std::array<u8, 224> reserved; /// Make heading 256 bytes so it has consistent size
 };
 static_assert(sizeof(CTMHeader) == 256, "CTMHeader should be 256 bytes");
 #pragma pack(pop)
 
 static PlayMode play_mode = PlayMode::None;
-static std::vector<u8> temp_input;
+static std::vector<u8> recorded_input;
 static size_t current_byte = 0;
 
 static bool IsPlayingInput() {
@@ -128,7 +128,7 @@ static bool IsRecordingInput() {
 }
 
 static void CheckInputEnd() {
-    if (current_byte + sizeof(ControllerState) > temp_input.size()) {
+    if (current_byte + sizeof(ControllerState) > recorded_input.size()) {
         LOG_INFO(Movie, "Playback finished");
         play_mode = PlayMode::None;
     }
@@ -136,7 +136,7 @@ static void CheckInputEnd() {
 
 static void Play(Service::HID::PadState& pad_state, s16& circle_pad_x, s16& circle_pad_y) {
     ControllerState s;
-    std::memcpy(&s, &temp_input[current_byte], sizeof(ControllerState));
+    std::memcpy(&s, &recorded_input[current_byte], sizeof(ControllerState));
     current_byte += sizeof(ControllerState);
 
     if (s.type != ControllerStateType::PadAndCircle) {
@@ -165,7 +165,7 @@ static void Play(Service::HID::PadState& pad_state, s16& circle_pad_x, s16& circ
 
 static void Play(Service::HID::TouchDataEntry& touch_data) {
     ControllerState s;
-    std::memcpy(&s, &temp_input[current_byte], sizeof(ControllerState));
+    std::memcpy(&s, &recorded_input[current_byte], sizeof(ControllerState));
     current_byte += sizeof(ControllerState);
 
     if (s.type != ControllerStateType::Touch) {
@@ -182,7 +182,7 @@ static void Play(Service::HID::TouchDataEntry& touch_data) {
 
 static void Play(Service::HID::AccelerometerDataEntry& accelerometer_data) {
     ControllerState s;
-    std::memcpy(&s, &temp_input[current_byte], sizeof(ControllerState));
+    std::memcpy(&s, &recorded_input[current_byte], sizeof(ControllerState));
     current_byte += sizeof(ControllerState);
 
     if (s.type != ControllerStateType::Accelerometer) {
@@ -199,7 +199,7 @@ static void Play(Service::HID::AccelerometerDataEntry& accelerometer_data) {
 
 static void Play(Service::HID::GyroscopeDataEntry& gyroscope_data) {
     ControllerState s;
-    std::memcpy(&s, &temp_input[current_byte], sizeof(ControllerState));
+    std::memcpy(&s, &recorded_input[current_byte], sizeof(ControllerState));
     current_byte += sizeof(ControllerState);
 
     if (s.type != ControllerStateType::Gyroscope) {
@@ -216,7 +216,7 @@ static void Play(Service::HID::GyroscopeDataEntry& gyroscope_data) {
 
 static void Play(Service::IR::PadState& pad_state, s16& c_stick_x, s16& c_stick_y) {
     ControllerState s;
-    std::memcpy(&s, &temp_input[current_byte], sizeof(ControllerState));
+    std::memcpy(&s, &recorded_input[current_byte], sizeof(ControllerState));
     current_byte += sizeof(ControllerState);
 
     if (s.type != ControllerStateType::IrRst) {
@@ -234,7 +234,7 @@ static void Play(Service::IR::PadState& pad_state, s16& c_stick_x, s16& c_stick_
 
 static void Play(Service::IR::ExtraHIDResponse& extra_hid_response) {
     ControllerState s;
-    std::memcpy(&s, &temp_input[current_byte], sizeof(ControllerState));
+    std::memcpy(&s, &recorded_input[current_byte], sizeof(ControllerState));
     current_byte += sizeof(ControllerState);
 
     if (s.type != ControllerStateType::ExtraHidResponse) {
@@ -253,8 +253,8 @@ static void Play(Service::IR::ExtraHIDResponse& extra_hid_response) {
 }
 
 static void Record(const ControllerState& controller_state) {
-    temp_input.resize(current_byte + sizeof(ControllerState));
-    std::memcpy(&temp_input[current_byte], &controller_state, sizeof(ControllerState));
+    recorded_input.resize(current_byte + sizeof(ControllerState));
+    std::memcpy(&recorded_input[current_byte], &controller_state, sizeof(ControllerState));
     current_byte += sizeof(ControllerState);
 }
 
@@ -348,11 +348,10 @@ static bool ValidateHeader(const CTMHeader& header) {
         return false;
     }
 
-    std::string revision;
-    CryptoPP::StringSource ss(header.revision.data(), sizeof(header.revision), true,
-                              new CryptoPP::HexEncoder(new CryptoPP::StringSink(revision)));
-
+    std::string revision =
+        Common::ArrayToString(header.revision.data(), header.revision.size(), 21, false);
     revision = Common::ToLower(revision);
+
     if (revision != Common::g_scm_rev) {
         LOG_WARNING(Movie,
                     "This movie was created on a different version of Citra, playback may desync");
@@ -387,7 +386,7 @@ static void SaveMovie() {
     std::memcpy(header.revision.data(), rev_bytes.data(), sizeof(CTMHeader::revision));
 
     save_record.WriteBytes(&header, sizeof(CTMHeader));
-    save_record.WriteBytes(temp_input.data(), temp_input.size());
+    save_record.WriteBytes(recorded_input.data(), recorded_input.size());
 
     if (!save_record.IsGood()) {
         LOG_ERROR(Movie, "Error saving movie");
@@ -405,8 +404,8 @@ void Init() {
             save_record.ReadArray(&header, 1);
             if (ValidateHeader(header)) {
                 play_mode = PlayMode::Playing;
-                temp_input.resize(size - sizeof(CTMHeader));
-                save_record.ReadArray(temp_input.data(), temp_input.size());
+                recorded_input.resize(size - sizeof(CTMHeader));
+                save_record.ReadArray(recorded_input.data(), recorded_input.size());
                 current_byte = 0;
             }
         } else {
@@ -429,7 +428,7 @@ void Shutdown() {
     SaveMovie();
 
     play_mode = PlayMode::None;
-    temp_input.resize(0);
+    recorded_input.resize(0);
     current_byte = 0;
 }
 
